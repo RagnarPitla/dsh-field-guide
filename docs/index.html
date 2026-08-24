@@ -230,13 +230,14 @@
     <li><a href="#planes"><span class="n">05</span>Host plane and agent plane</a></li>
     <li><a href="#presets"><span class="n">06</span>The four presets that ship</a></li>
     <li><a href="#compose"><span class="n">07</span>Composition and layer order</a></li>
-    <li><a href="#write"><span class="n">08</span>Writing a plugin</a></li>
-    <li><a href="#ecosystem"><span class="n">09</span>What has already been built</a></li>
-    <li><a href="#security"><span class="n">10</span>Security posture, honestly</a></li>
-    <li><a href="#landscape"><span class="n">11</span>How it compares</a></li>
-    <li><a href="#misconceptions"><span class="n">12</span>Commonly repeated errors</a></li>
-    <li><a href="#drift"><span class="n">13</span>Documentation drift at this commit</a></li>
-    <li><a href="#verified"><span class="n">14</span>How this was verified</a></li>
+    <li><a href="#byom"><span class="n">08</span>Bringing your own model</a></li>
+    <li><a href="#write"><span class="n">09</span>Writing a plugin</a></li>
+    <li><a href="#ecosystem"><span class="n">10</span>What has already been built</a></li>
+    <li><a href="#security"><span class="n">11</span>Security posture, honestly</a></li>
+    <li><a href="#landscape"><span class="n">12</span>How it compares</a></li>
+    <li><a href="#misconceptions"><span class="n">13</span>Commonly repeated errors</a></li>
+    <li><a href="#drift"><span class="n">14</span>Documentation drift at this commit</a></li>
+    <li><a href="#verified"><span class="n">15</span>How this was verified</a></li>
   </ul>
 </section>
 
@@ -648,8 +649,151 @@
   </p>
 </section>
 
+<section id="byom">
+  <div class="sec-num">08 — The seam most people want</div>
+  <h2>Bringing your own model</h2>
+  <p>
+    Composition is abstract until you use it for something you actually want. For most readers that
+    something is the model. A harness published by a model vendor invites one obvious suspicion: that
+    the model connection is welded in. It is not. The verdict is more interesting than either
+    "DeepSeek-only" or "run anything", and the gap between those two is where the practical detail lives.
+  </p>
+
+  <div class="note">
+    <span class="k-label">The verdict in one line</span>
+    <p>
+      The seam is genuine and the reach is wide, but breadth is <strong>configuration, not the shipped
+      default</strong>. "Run any model" is marketing. <strong>"Run essentially every model that matters,
+      after configuration"</strong> is accurate.
+    </p>
+  </div>
+
+  <h3>The seam is real</h3>
+  <p>
+    <code>LlmAdapter</code> is an abstract class in the LLM service, not a DeepSeek client with hooks
+    bolted on. Its only required method is <code>stream()</code>. Adapters are registered with
+    <code>ctx.llm.registerAdapter(providers, adapter)</code>, and because registration is effect-owned,
+    an adapter disappears when its plugin unloads, exactly like any other contribution described in
+    <a href="#plugin-claim">section 03</a>. <span class="badge b-src">Source</span>
+  </p>
+  <p>
+    The service documents one obligation on adapter authors that is easy to miss: every provider HTTP
+    request must include <code>attributionHeaders()</code>. The two shipped adapters satisfy it through
+    completely different internals, one by direct fetch and one through a library header hook.
+    <span class="badge b-src">Source</span>
+  </p>
+
+  <div class="t-wrap">
+  <table>
+    <thead><tr><th>Package</th><th>What it is</th><th>Routes it registers</th></tr></thead>
+    <tbody>
+      <tr><td><code>llm/llm</code></td><td>The service and the neutral <code>LlmAdapter</code> base</td><td>None; it is the seam itself</td></tr>
+      <tr><td><code>llm/llm-deepseek</code></td><td>First-party adapter, direct fetch</td><td><code>deepseek-official</code></td></tr>
+      <tr><td><code>llm/llm-pi-ai</code></td><td>Multi-provider twin, delegates to pinned <code>@earendil-works/pi-ai@0.82.1</code></td><td>Zero, until settings supply profiles</td></tr>
+      <tr><td><code>llm/llm-retry</code></td><td>Optional retry executor</td><td>Not a provider</td></tr>
+      <tr><td><code>test-support/llm-replay</code></td><td>Deterministic replay for tests</td><td>Not a production network provider</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>How far the catalog actually reaches</h3>
+  <p>
+    The <code>llm-pi-ai</code> adapter delegates to a pinned third-party catalog. Rather than repeat a
+    figure from someone else's summary, the count below was produced by calling
+    <code>getBuiltinProviders()</code> against version <code>0.82.1</code>, the exact version the
+    repository pins. It returns <strong>37 provider IDs</strong>: <span class="badge b-run">Run</span>
+  </p>
+  <div class="note">
+    <p>
+      <code>amazon-bedrock</code>, <code>ant-ling</code>, <code>anthropic</code>,
+      <code>azure-openai-responses</code>, <code>cerebras</code>, <code>cloudflare-ai-gateway</code>,
+      <code>cloudflare-workers-ai</code>, <code>deepseek</code>, <code>fireworks</code>,
+      <code>github-copilot</code>, <code>google</code>, <code>google-vertex</code>, <code>groq</code>,
+      <code>huggingface</code>, <code>kimi-coding</code>, <code>minimax</code>, <code>minimax-cn</code>,
+      <code>mistral</code>, <code>moonshotai</code>, <code>moonshotai-cn</code>, <code>nvidia</code>,
+      <code>openai</code>, <code>openai-codex</code>, <code>opencode</code>, <code>opencode-go</code>,
+      <code>openrouter</code>, <code>qwen-token-plan</code>, <code>qwen-token-plan-cn</code>,
+      <code>together</code>, <code>vercel-ai-gateway</code>, <code>xai</code>, <code>xiaomi</code>,
+      <code>xiaomi-token-plan-ams</code>, <code>xiaomi-token-plan-cn</code>,
+      <code>xiaomi-token-plan-sgp</code>, <code>zai</code>, <code>zai-coding-cn</code>
+    </p>
+  </div>
+  <p>
+    The Anthropic Messages, OpenAI Completions, and OpenAI Responses implementations behind these are
+    real imported modules, not stubs. <span class="badge b-src">Source</span>
+  </p>
+
+  <h3>Three limits worth knowing before you plan around this</h3>
+
+  <div class="warn">
+    <span class="k-label">1. The multi-provider adapter ships dormant</span>
+    <p>
+      The base composition mounts <code>llm-pi-ai</code> with <strong>zero routes</strong> and no extra
+      models in the picker, while separately setting the default to provider
+      <code>deepseek-official</code>, model <code>deepseek-v4-flash</code>. Routes register live only
+      once a <code>llm-pi-ai:</code> settings section supplies provider profiles, and they drop again
+      when that section empties. The comment in the base patch states the division plainly: which
+      adapters exist is composition, which providers run is the user's settings document. So the
+      out-of-box live route is DeepSeek-only, and every one of those 37 providers is a configuration
+      step away rather than a default. <span class="badge b-src">Source</span>
+    </p>
+  </div>
+
+  <div class="warn">
+    <span class="k-label">2. A hand-declared endpoint reaches three protocols, not arbitrary wire formats</span>
+    <p>
+      If you declare a route yourself instead of picking a catalog entry, you get exactly
+      <code>openai-completions</code>, <code>openai-responses</code>, and <code>anthropic-messages</code>.
+      This is deliberate and the source explains why: Bedrock signs with SigV4 over AWS credentials and
+      a region, Vertex needs a project, a location and application-default credentials, Azure needs an
+      api-version, and Codex authenticates through OAuth. None of that fits a configuration shape of
+      key, endpoint and headers, so offering it would hand back a provider that cannot authenticate.
+      Catalog routes still reach every protocol through their own provider; only an explicit override is
+      refused. <span class="badge b-src">Source</span>
+    </p>
+  </div>
+
+  <div class="warn">
+    <span class="k-label">3. No retry, caching, or rate limiting in the core service</span>
+    <p>
+      Provider registration stores a retry policy, but <code>llm/stream</code> is a single-attempt call
+      wrapper. Retry is a separate optional plugin, <code>dsh-llm-retry</code>, loaded by the shared
+      example spine. Treat resilience as something you compose in, not something you inherit.
+      <span class="badge b-src">Source</span>
+    </p>
+  </div>
+
+  <h3>What this means in practice</h3>
+  <p>
+    If you already pay for a frontier model, the useful reading is that <code>anthropic</code>,
+    <code>openai</code>, and <code>github-copilot</code> are catalog entries, so reaching them is a
+    settings exercise rather than an engineering one. If you run open weights locally, Ollama and most
+    self-hosted servers expose an OpenAI-compatible endpoint, which is precisely the
+    <code>openai-completions</code> protocol a hand-declared route supports. The community has already
+    built at least one adapter of its own, an OAuth-based GitHub Copilot provider, which is the clearest
+    available evidence that the seam is usable from outside the repository.
+    <span class="badge b-ext">External</span>
+  </p>
+  <p>
+    A protocol outside those three still needs a new adapter plugin. That is not a workaround; it is the
+    intended extension path, and it is the same three-files-and-one-command exercise as
+    <a href="#write">section 09</a>. An adapter is simply a plugin whose contribution happens to be a
+    model route.
+  </p>
+
+  <div class="note">
+    <span class="k-label">The limit of this section</span>
+    <p>
+      Everything above is read from source or executed against the pinned catalog.
+      <strong>No model was invoked through any of these routes.</strong> This section describes what the
+      code supports and what the shipped composition selects. It says nothing about latency, output
+      quality, or how well any given model drives this agent loop.
+    </p>
+  </div>
+</section>
+
 <section id="write">
-  <div class="sec-num">08 — Practice</div>
+  <div class="sec-num">09 — Practice</div>
   <h2>Writing a plugin</h2>
   <p>
     An external plugin is <strong>three files and one command</strong>. No build step, no TypeScript
@@ -756,7 +900,7 @@ Done in 223ms</code></pre>
 </section>
 
 <section id="ecosystem">
-  <div class="sec-num">09 — Ecosystem</div>
+  <div class="sec-num">10 — Ecosystem</div>
   <h2>What has already been built</h2>
   <p>
     The most striking thing about this project is not its architecture. It is how fast people built on it. As of 2026-08-24, <strong>11,258 GitHub repositories carry the <code>dsh-plugin</code> topic</strong>,
@@ -833,7 +977,7 @@ Done in 223ms</code></pre>
     <div class="card">
       <h4>Genuinely thin</h4>
       <p>Research workflows — the sample turned up one mathematical-research
-      adaptation and one academic-writing auditor. Note the caveat in <a href="#security">section 10</a>
+      adaptation and one academic-writing auditor. Note the caveat in <a href="#security">section 11</a>
       before building anything that fetches from the open web.</p>
     </div>
     <div class="card">
@@ -861,7 +1005,7 @@ Done in 223ms</code></pre>
 </section>
 
 <section id="security">
-  <div class="sec-num">10 — Risk</div>
+  <div class="sec-num">11 — Risk</div>
   <h2>Security posture, honestly</h2>
   <p>
     The project documents its own limits unusually well, but does so scattered across a dozen package
@@ -952,7 +1096,7 @@ Done in 223ms</code></pre>
 </section>
 
 <section id="landscape">
-  <div class="sec-num">11 — Comparison</div>
+  <div class="sec-num">12 — Comparison</div>
   <h2>How it compares</h2>
   <p>
     Positioning against the harnesses most readers already use. Licence and capability facts are from each
@@ -999,7 +1143,7 @@ Done in 223ms</code></pre>
 </section>
 
 <section id="misconceptions">
-  <div class="sec-num">12 — Corrections</div>
+  <div class="sec-num">13 — Corrections</div>
   <h2>Commonly repeated errors</h2>
   <p>
     These circulate widely in secondary explanations of the project. Each correction below is cited to the
@@ -1063,7 +1207,7 @@ Done in 223ms</code></pre>
       <p>
         Network is not in the sandbox policy vocabulary, reads are unrestricted, the environment scrub is
         not a credential firewall, and both Code Mode and dynamically defined plugins are documented as
-        containment rather than security boundaries. See <a href="#security">section 10</a>.
+        containment rather than security boundaries. See <a href="#security">section 11</a>.
       </p>
       <p class="src-line">Consolidated from package READMEs and sandbox sources. <span class="badge b-src">Source</span></p>
     </div>
@@ -1083,7 +1227,7 @@ Done in 223ms</code></pre>
 </section>
 
 <section id="drift">
-  <div class="sec-num">13 — Errata</div>
+  <div class="sec-num">14 — Errata</div>
   <h2>Documentation drift at this commit</h2>
   <p>
     Four inconsistencies between the documentation and the tree, current as of <code>b150a55</code>. A
@@ -1132,7 +1276,7 @@ Done in 223ms</code></pre>
 </section>
 
 <section id="verified">
-  <div class="sec-num">14 — Provenance</div>
+  <div class="sec-num">15 — Provenance</div>
   <h2>How this was verified</h2>
   <p>
     The part of this document that should determine how much you trust the rest.
@@ -1147,14 +1291,16 @@ Done in 223ms</code></pre>
     <li>Wrote a three-file external plugin, installed it with <code>dsh plugin add</code>, confirmed it was appended to the profile's bundle list and appeared in the composed tree, and booted the profile.</li>
     <li>Confirmed the repository HEAD, the absence of <code>packages/self-modification/</code>, the length of <code>BENCHMARK.md</code>, and the 18 numbered entries in the vendoring log.</li>
     <li>Queried public registry metadata for the dist-tag discrepancy, cross-checked against two independent sources.</li>
+    <li>Called <code>getBuiltinProviders()</code> against <code>@earendil-works/pi-ai@0.82.1</code>, the version the repository pins, and counted the 37 provider IDs listed in <a href="#byom">section 08</a>.</li>
   </ul>
 
   <h3>What was read but not executed <span class="badge b-src">Source</span></h3>
   <ul>
-    <li>The entire security posture in <a href="#security">section 10</a>. Every statement there is sourced from package documentation and sandbox source, and none was tested by attempting to escape a sandbox.</li>
-    <li>The trajectory-provenance correction in <a href="#misconceptions">section 12</a>.</li>
+    <li>The entire security posture in <a href="#security">section 11</a>. Every statement there is sourced from package documentation and sandbox source, and none was tested by attempting to escape a sandbox.</li>
+    <li>The trajectory-provenance correction in <a href="#misconceptions">section 13</a>.</li>
     <li>Composition layer order and the no-deep-merge behaviour of patches.</li>
-    <li>The extension-seam inventory in <a href="#write">section 08</a>.</li>
+    <li>The extension-seam inventory in <a href="#write">section 09</a>.</li>
+    <li>The LLM adapter contract, the dormant multi-provider mount in the base composition, and the three-protocol limit on hand-declared routes in <a href="#byom">section 08</a>. No model was invoked through any route.</li>
   </ul>
 
   <h3>Known limitations</h3>
