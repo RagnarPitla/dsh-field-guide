@@ -76,9 +76,20 @@ failures.
 
 ## How it was verified
 
+`verify.mjs` imports `@deepseek-ai/cordis` and `@deepseek-ai/dsh-skill`, which a
+plugin does not vendor itself: they are peer dependencies the host supplies at
+runtime. So run it against a tree that already has them, such as the profile
+this plugin is installed into. `NODE_PATH` does not work here, because ESM
+resolution ignores it.
+
 ```sh
+ln -sfn /path/to/host/node_modules node_modules
 node verify.mjs
+rm node_modules
 ```
+
+`node_modules/` is gitignored, so the symlink cannot be committed by accident.
+Expect a final line of `PASS: dsh-plugin-dev verified against @deepseek-ai/dsh-skill`.
 
 `verify.mjs` mounts the real `@deepseek-ai/dsh-skill` registry and this plugin on
 a bare Cordis context, then asserts that both skills are discoverable through
