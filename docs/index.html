@@ -1126,8 +1126,8 @@ Done in 223ms</code></pre>
       </tr>
       <tr>
         <td><code>docs/cookbook/adding-a-package.md</code></td>
-        <td>Says workspace packages set <code>"private": true</code></td>
-        <td>The repository's own workspace-constraints check rejects <code>private: true</code> for release members</td>
+        <td>Lists <code>private: true</code> as an enforced package.json invariant</td>
+        <td>The constraints gate raises <em>"release member must not set <code>private: true</code>"</em> for every <code>packages/&lt;group&gt;/&lt;pkg&gt;</code> outside <code>experimental/</code> — the advice holds only for experimental packages</td>
       </tr>
     </tbody>
   </table>
