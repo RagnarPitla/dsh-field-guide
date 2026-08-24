@@ -78,6 +78,12 @@ Known gaps are listed in the guide's final section. The largest: the binary exer
 nothing here describes how the agent behaves on a real task — only how the system is
 assembled.
 
+## Scope
+
+This is a deep-dive on one harness. It is deliberately not a general treatment of harness
+design — section 01 covers only enough of that to make the DeepSeek-specific material
+legible, and stops there.
+
 ## Licence
 
 MIT. See [LICENSE](LICENSE).
