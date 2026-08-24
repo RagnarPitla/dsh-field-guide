@@ -1,1355 +1,445 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>DSH Field Guide — DeepSeek Harness, verified against source</title>
-<meta name="description" content="An independent, evidence-marked field guide to DeepSeek Harness (dsh): architecture, composition model, plugin authoring, security posture, and how it compares to other agent harnesses.">
-<style>
-  :root{
-    --ink:#0f172a; --ink-2:#334155; --ink-3:#64748b; --ink-4:#94a3b8;
-    --bg:#ffffff; --bg-2:#f8fafc; --bg-3:#f1f5f9;
-    --line:#e2e8f0; --line-2:#cbd5e1;
-    --accent:#0f766e; --accent-2:#115e59; --accent-bg:#f0fdfa;
-    --run:#065f46; --run-bg:#ecfdf5; --run-line:#6ee7b7;
-    --src:#854d0e; --src-bg:#fefce8; --src-line:#fde047;
-    --ext:#3730a3; --ext-bg:#eef2ff; --ext-line:#a5b4fc;
-    --warn:#9f1239; --warn-bg:#fff1f2; --warn-line:#fda4af;
-    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
-    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,"Helvetica Neue",Arial,sans-serif;
-  }
-  *{box-sizing:border-box}
-  html{-webkit-text-size-adjust:100%}
-  body{
-    margin:0; background:var(--bg); color:var(--ink);
-    font-family:var(--sans); font-size:16.5px; line-height:1.65;
-    -webkit-font-smoothing:antialiased;
-  }
-  .wrap{max-width:1180px;margin:0 auto;padding:0 28px}
+<title>DSH Field Guide - what DeepSeek Harness actually does</title>
+<meta name="description" content="An independent field guide to DeepSeek Harness, pinned to commit b150a55. Forty-five claims, each badged with how it was checked, and six widely repeated claims corrected.">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#ffffff">
 
-  /* ---------- masthead ---------- */
-  header.top{border-bottom:1px solid var(--line);background:linear-gradient(180deg,#fbfdfd 0%,#ffffff 100%)}
-  .masthead{padding:56px 0 40px}
-  .eyebrow{
-    font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;
-    color:var(--accent);font-weight:600;margin-bottom:18px
-  }
-  h1.title{
-    font-size:clamp(34px,5.2vw,54px);line-height:1.08;letter-spacing:-.025em;
-    margin:0 0 18px;font-weight:700
-  }
-  .standfirst{font-size:19.5px;line-height:1.55;color:var(--ink-2);max-width:74ch;margin:0 0 30px}
-  .standfirst strong{color:var(--ink);font-weight:600}
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="DSH Field Guide">
+<meta property="og:title" content="DSH Field Guide - what DeepSeek Harness actually does">
+<meta property="og:description" content="An independent field guide to DeepSeek Harness, pinned to commit b150a55. Forty-five claims, each badged with how it was checked, and six widely repeated claims corrected.">
+<meta property="og:url" content="https://ragnarpitla.github.io/dsh-field-guide/">
+<meta property="og:image" content="https://ragnarpitla.github.io/dsh-field-guide/assets/og-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="DSH Field Guide: what DeepSeek Harness actually does">
 
-  .provenance{
-    display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1px;
-    background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:34px
-  }
-  .prov-cell{background:#fff;padding:14px 16px}
-  .prov-k{font-family:var(--mono);font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3);margin-bottom:5px}
-  .prov-v{font-family:var(--mono);font-size:13.5px;color:var(--ink);font-weight:600;word-break:break-all}
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="DSH Field Guide - what DeepSeek Harness actually does">
+<meta name="twitter:description" content="An independent field guide to DeepSeek Harness, pinned to commit b150a55. Forty-five claims, each badged with how it was checked, and six widely repeated claims corrected.">
+<meta name="twitter:image" content="https://ragnarpitla.github.io/dsh-field-guide/assets/og-card.png">
+<meta name="twitter:image:alt" content="DSH Field Guide: what DeepSeek Harness actually does">
 
-  /* ---------- layout ---------- */
-  main{padding:0 0 90px}
-  section{padding:52px 0;border-bottom:1px solid var(--line)}
-  section:last-of-type{border-bottom:none}
-  .sec-num{
-    font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;color:var(--accent);
-    font-weight:600;text-transform:uppercase;margin-bottom:12px
-  }
-  h2{font-size:clamp(25px,3.2vw,33px);line-height:1.2;letter-spacing:-.02em;margin:0 0 16px;font-weight:700}
-  h3{font-size:19.5px;line-height:1.3;margin:38px 0 12px;font-weight:650;letter-spacing:-.01em}
-  h4{font-size:16px;margin:26px 0 8px;font-weight:650;color:var(--ink-2)}
-  p{margin:0 0 15px;max-width:78ch}
-  ul,ol{margin:0 0 15px;padding-left:22px;max-width:78ch}
-  li{margin-bottom:7px}
-  a{color:var(--accent);text-decoration:none;border-bottom:1px solid #99f6e4}
-  a:hover{border-bottom-color:var(--accent)}
-  code{font-family:var(--mono);font-size:.875em;background:var(--bg-3);padding:.13em .38em;border-radius:4px;color:var(--accent-2)}
-  strong{font-weight:650}
-
-  /* ---------- evidence badges ---------- */
-  .badge{
-    display:inline-block;font-family:var(--mono);font-size:10px;font-weight:700;
-    letter-spacing:.09em;text-transform:uppercase;padding:2.5px 7px;border-radius:4px;
-    vertical-align:middle;white-space:nowrap;border:1px solid
-  }
-  .b-run{background:var(--run-bg);color:var(--run);border-color:var(--run-line)}
-  .b-src{background:var(--src-bg);color:var(--src);border-color:var(--src-line)}
-  .b-ext{background:var(--ext-bg);color:var(--ext);border-color:var(--ext-line)}
-
-  .legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:14px;margin:26px 0 8px}
-  .legend-item{border:1px solid var(--line);border-radius:9px;padding:15px 17px;background:var(--bg-2)}
-  .legend-item p{margin:9px 0 0;font-size:14.5px;color:var(--ink-2);max-width:none}
-
-  /* ---------- callouts ---------- */
-  .note{border-left:3px solid var(--accent);background:var(--accent-bg);padding:16px 20px;border-radius:0 8px 8px 0;margin:22px 0}
-  .note p{margin:0;max-width:none}
-  .note p + p{margin-top:11px}
-  .warn{border-left:3px solid var(--warn);background:var(--warn-bg);padding:16px 20px;border-radius:0 8px 8px 0;margin:22px 0}
-  .warn p{margin:0;max-width:none}
-  .warn p + p{margin-top:11px}
-  .warn strong{color:var(--warn)}
-  .k-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;display:block;margin-bottom:7px}
-  .note .k-label{color:var(--accent)}
-  .warn .k-label{color:var(--warn)}
-
-  /* ---------- code ---------- */
-  pre{
-    background:#0f172a;color:#e2e8f0;padding:17px 19px;border-radius:9px;overflow-x:auto;
-    font-family:var(--mono);font-size:13px;line-height:1.6;margin:16px 0;max-width:none
-  }
-  pre .c{color:#94a3b8}
-  pre .g{color:#6ee7b7}
-  pre .y{color:#fcd34d}
-  pre .p{color:#c4b5fd}
-  pre code{background:none;padding:0;color:inherit;font-size:inherit}
-
-  /* ---------- tables ---------- */
-  .t-wrap{overflow-x:auto;margin:20px 0;border:1px solid var(--line);border-radius:9px}
-  table{border-collapse:collapse;width:100%;font-size:14.5px}
-  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
-  th{background:var(--bg-2);font-weight:650;font-size:12.5px;letter-spacing:.03em;text-transform:uppercase;color:var(--ink-2);white-space:nowrap}
-  tr:last-child td{border-bottom:none}
-  td code{font-size:12.5px}
-  .cmp td{font-size:13.5px}
-  .cmp td:first-child,.cmp th:first-child{font-weight:600;white-space:nowrap}
-  .yes{color:var(--run);font-weight:700}
-  .no{color:var(--warn);font-weight:700}
-
-  /* ---------- misc blocks ---------- */
-  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin:22px 0}
-  .card{border:1px solid var(--line);border-radius:10px;padding:19px 21px;background:#fff}
-  .card h4{margin:0 0 9px;font-size:15.5px;color:var(--ink)}
-  .card p{font-size:14.5px;color:var(--ink-2);margin:0;max-width:none}
-  .card p + p{margin-top:9px}
-
-  .mis{border:1px solid var(--line);border-radius:10px;margin:16px 0;overflow:hidden}
-  .mis-claim{background:var(--bg-2);padding:14px 19px;font-weight:650;border-bottom:1px solid var(--line);display:flex;gap:11px;align-items:flex-start}
-  .mis-claim .x{color:var(--warn);font-weight:700;flex-shrink:0}
-  .mis-body{padding:16px 19px}
-  .mis-body p{margin:0;max-width:none}
-  .mis-body p + p{margin-top:11px}
-  .src-line{font-family:var(--mono);font-size:12px;color:var(--ink-3);margin-top:12px!important;padding-top:11px;border-top:1px dashed var(--line-2)}
-
-  .toc{columns:2;column-gap:34px;margin:24px 0 0;padding:0;list-style:none;max-width:none}
-  .toc li{break-inside:avoid;margin-bottom:9px;padding-left:0}
-  .toc a{display:block;padding:7px 12px;border:1px solid var(--line);border-radius:7px;color:var(--ink-2);border-bottom:1px solid var(--line);font-size:14.5px}
-  .toc a:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
-  .toc .n{font-family:var(--mono);font-size:11.5px;color:var(--accent);font-weight:600;margin-right:9px}
-
-  footer{border-top:1px solid var(--line);background:var(--bg-2);padding:40px 0;font-size:14px;color:var(--ink-3)}
-  footer p{max-width:78ch;margin:0 0 11px}
-  footer strong{color:var(--ink-2)}
-
-  @media (max-width:720px){
-    .wrap{padding:0 20px}
-    .toc{columns:1}
-    .masthead{padding:40px 0 30px}
-    body{font-size:16px}
-  }
-  @media print{
-    body{font-size:11pt}
-    pre{background:#f8fafc;color:#0f172a;border:1px solid #cbd5e1}
-    pre .c,pre .g,pre .y,pre .p{color:#0f172a}
-    section{page-break-inside:avoid;border-bottom:1px solid #ccc}
-    .toc{display:none}
-    a{color:var(--ink);border:none}
-  }
-</style>
+<link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="./assets/site.css">
 </head>
 <body>
+<a class="skip-link" href="#main">Skip to main content</a>
 
-<header class="top">
-  <div class="wrap masthead">
-    <div class="eyebrow">Independent field guide &middot; Evidence-marked</div>
-    <h1 class="title">DSH Field Guide</h1>
-    <p class="standfirst">
-      A working reference for DeepSeek Harness: what it is, how its composition
-      model fits together, how to write a plugin for it, and what its sandbox does and does not protect.
-      Every claim here is marked with how it was checked: <strong>run against the shipped binary</strong>,
-      <strong>read from source</strong>, or <strong>taken from an external source</strong>. Where a widely
-      repeated claim turned out to be wrong, the correction is shown with its citation.
-    </p>
-
-    <div class="provenance">
-      <div class="prov-cell"><div class="prov-k">Repository commit</div><div class="prov-v">b150a55</div></div>
-      <div class="prov-cell"><div class="prov-k">Commit date</div><div class="prov-v">2026-08-21</div></div>
-      <div class="prov-cell"><div class="prov-k">Checkout version</div><div class="prov-v">0.1.1-rc.2</div></div>
-      <div class="prov-cell"><div class="prov-k">Binary exercised</div><div class="prov-v">dsh 0.1.0-rc.7</div></div>
-      <div class="prov-cell"><div class="prov-k">Compiled</div><div class="prov-v">2026-08-24</div></div>
-    </div>
+<header class="site-header">
+  <div class="container">
+    <a class="wordmark" href="#top">
+      <img class="wordmark-icon" src="./assets/favicon.svg" alt="" width="22" height="22">
+      <span class="mark">DSH Field Guide</span>
+      <span class="strap">Checked against the binary</span>
+    </a>
+    <nav class="site-nav" aria-label="Primary">
+      <ul>
+        <li><a href="#how-it-works">How it works</a></li>
+        <li><a href="#proof">Corrections</a></li>
+        <li><a href="#faq">FAQ</a></li>
+        <li><a href="https://github.com/RagnarPitla/dsh-field-guide">GitHub</a></li>
+        <li><a class="cta" href="./guide.html">Read the field guide</a></li>
+      </ul>
+    </nav>
   </div>
 </header>
 
-<main class="wrap">
+<main id="main" tabindex="-1">
 
-<section id="how-to-read">
-  <div class="sec-num">00 — Method</div>
-  <h2>How to read this guide</h2>
-  <p>
-    DeepSeek Harness is a pre-release project (version <code>0.1.1-rc.2</code>, breaking changes expected) that moves fast enough for eight release candidates to ship in a week. Two of them landed
-    on the same day. Any document about it is a photograph, not a map, so this one states its shutter
-    speed: it describes commit <code>b150a55</code> of 2026-08-21, and every factual claim carries a badge
-    saying how it was established.
-  </p>
+  <!-- ============================================================= HERO -->
+  <section class="hero" id="top" aria-labelledby="hero-heading">
+    <div class="container">
+      <div class="hero-copy">
+        <p class="hero-kicker badge"><img src="./assets/favicon.svg" alt="" width="12" height="12">DSH Field Guide</p>
+        <h1 id="hero-heading">What DeepSeek Harness actually does, claim by claim</h1>
+        <p class="sub-line">An independent guide to <code>dsh</code>, pinned to commit <code>b150a55</code>, where <strong>every one of its 45 factual claims carries a badge saying how it was established</strong>: run against the shipped binary, read from source, or taken from outside the project. Six claims that circulate widely did not survive the check, and each correction names what replaced it.</p>
+        <div class="cta-row">
+          <a class="btn primary" href="./guide.html">Read the field guide</a>
+          <a class="btn ghost" href="https://github.com/RagnarPitla/dsh-field-guide">View the code on GitHub</a>
+        </div>
+        <p class="microcopy">
+          MIT licensed<span class="sep">*</span>No affiliation with DeepSeek<span class="sep">*</span>One HTML file, works offline
+        </p>
+      </div>
+      <div class="hero-art">
+        <svg viewBox="0 0 520 340" role="img" aria-label="The same four claims shown twice. On the left, headed as it circulates, each claim is a plain grey bar with an empty dashed outline where its evidence would go. On the right, headed as the guide publishes it, the same four claims each carry a filled badge reading Run, Source or External, and the fourth claim is struck through and its badge marked in amber, showing a claim that was checked and failed.">
+          <text x="0" y="16" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12" font-weight="700" letter-spacing="0.08em" fill="#737373">AS IT CIRCULATES</text>
+          <text x="284" y="16" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12" font-weight="700" letter-spacing="0.08em" fill="#0a0a0a">AS THE GUIDE PUBLISHES IT</text>
 
-  <div class="legend">
-    <div class="legend-item">
-      <span class="badge b-run">Run</span>
-      <p>Verified by executing the published <code>dsh</code> binary or inspecting the installed npm
-      artifact. The strongest evidence here.</p>
+          <!-- left column: claims with no provenance -->
+          <g>
+            <rect x="0" y="44" width="236" height="40" rx="8" fill="#f5f5f5" stroke="#e5e5e5"/>
+            <rect x="12" y="60" width="150" height="8" rx="4" fill="#d4d4d4"/>
+            <rect x="184" y="55" width="40" height="18" rx="9" fill="none" stroke="#d4d4d4" stroke-dasharray="3 3"/>
+
+            <rect x="0" y="96" width="236" height="40" rx="8" fill="#f5f5f5" stroke="#e5e5e5"/>
+            <rect x="12" y="112" width="120" height="8" rx="4" fill="#d4d4d4"/>
+            <rect x="184" y="107" width="40" height="18" rx="9" fill="none" stroke="#d4d4d4" stroke-dasharray="3 3"/>
+
+            <rect x="0" y="148" width="236" height="40" rx="8" fill="#f5f5f5" stroke="#e5e5e5"/>
+            <rect x="12" y="164" width="168" height="8" rx="4" fill="#d4d4d4"/>
+            <rect x="184" y="159" width="40" height="18" rx="9" fill="none" stroke="#d4d4d4" stroke-dasharray="3 3"/>
+
+            <rect x="0" y="200" width="236" height="40" rx="8" fill="#f5f5f5" stroke="#e5e5e5"/>
+            <rect x="12" y="216" width="134" height="8" rx="4" fill="#d4d4d4"/>
+            <rect x="184" y="211" width="40" height="18" rx="9" fill="none" stroke="#d4d4d4" stroke-dasharray="3 3"/>
+          </g>
+
+          <!-- right column: same claims, each marked with its evidence class -->
+          <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="9" font-weight="700" letter-spacing="0.06em">
+            <rect x="284" y="44" width="236" height="40" rx="8" fill="#ffffff" stroke="#e5e5e5"/>
+            <rect x="296" y="60" width="130" height="8" rx="4" fill="#a3a3a3"/>
+            <rect x="468" y="55" width="40" height="18" rx="9" fill="#171717"/>
+            <text x="488" y="67" fill="#fafafa" text-anchor="middle">RUN</text>
+
+            <rect x="284" y="96" width="236" height="40" rx="8" fill="#ffffff" stroke="#e5e5e5"/>
+            <rect x="296" y="112" width="112" height="8" rx="4" fill="#a3a3a3"/>
+            <rect x="450" y="107" width="58" height="18" rx="9" fill="#171717"/>
+            <text x="479" y="119" fill="#fafafa" text-anchor="middle">SOURCE</text>
+
+            <rect x="284" y="148" width="236" height="40" rx="8" fill="#ffffff" stroke="#e5e5e5"/>
+            <rect x="296" y="164" width="120" height="8" rx="4" fill="#a3a3a3"/>
+            <rect x="440" y="159" width="68" height="18" rx="9" fill="#171717"/>
+            <text x="474" y="171" fill="#fafafa" text-anchor="middle">EXTERNAL</text>
+
+            <rect x="284" y="200" width="236" height="40" rx="8" fill="#ffffff" stroke="#e5e5e5"/>
+            <rect x="296" y="216" width="138" height="8" rx="4" fill="#d4d4d4"/>
+            <line x1="292" y1="220" x2="438" y2="220" stroke="#b45309" stroke-width="2"/>
+            <rect x="468" y="211" width="40" height="18" rx="9" fill="#b45309"/>
+            <text x="488" y="223" fill="#ffffff" text-anchor="middle">RUN</text>
+          </g>
+
+          <text x="0" y="286" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12" fill="#737373">Same claims. One side tells you which ones were run,</text>
+          <text x="0" y="306" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12" fill="#737373">and which one failed when it was.</text>
+        </svg>
+      </div>
     </div>
-    <div class="legend-item">
-      <span class="badge b-src">Source</span>
-      <p>Read from the repository at <code>b150a55</code> but not executed. Reliable for structure;
-      weaker for runtime behaviour.</p>
+  </section>
+
+  <!-- ========================================================== PROBLEM -->
+  <section class="prose-section" id="problem" aria-labelledby="problem-heading">
+    <div class="container">
+      <h2 id="problem-heading">Three explainers, the same numbers, no sources</h2>
+      <p>You read three write-ups of a new agent harness in a week. They agree, which feels like corroboration right up to the moment you notice they agree on the <em>same</em> numbers, in the same order, with the same rounding. None of them says which figures came out of a running process and which were read off a directory listing.</p>
+      <p>So you clone the repository, boot it, and the count on your screen is not the count in the post. Now you have to work out whether you misconfigured something or whether the post was never checked, and that costs you the afternoon you were trying to save.</p>
+      <p class="muted">That is not a reading problem. Secondary sources compress each other: the second post trusts the first, the third trusts the second, and by the fourth nobody has touched the binary. What survives that chain is whatever was most quotable, not whatever was most true, and a number with no provenance attached is indistinguishable from a number somebody guessed.</p>
     </div>
-    <div class="legend-item">
-      <span class="badge b-ext">External</span>
-      <p>From outside the project — public registries, published commentary, other vendors'
-      documentation.</p>
+  </section>
+
+  <!-- ==================================================== HOW IT WORKS -->
+  <section id="how-it-works" aria-labelledby="how-heading">
+    <div class="container">
+      <h2 id="how-heading">How it works</h2>
+      <p class="lede">The method is deliberately boring, and all four steps are things you can repeat against the same commit.</p>
+      <ol class="steps">
+        <li>
+          <h3>Pin a commit before writing anything</h3>
+          <p>Every claim is checked against <code>b150a55</code>, dated 2026-08-21, with the working checkout at <code>0.1.1-rc.2</code>. A guide that says "currently" starts rotting the day it ships. A guide that names a commit can be argued with, because you can check that commit out and prove it wrong.</p>
+        </li>
+        <li>
+          <h3>Ask the binary, not the directory listing</h3>
+          <p>Where a claim is about runtime, it gets settled by running <code>dsh --profile web --dump-default-config</code> against the installed npm artifact rather than by counting folders in the repo. That single habit is the difference between reporting 227 and reporting 104.</p>
+        </li>
+        <li>
+          <h3>Badge every claim with the evidence behind it</h3>
+          <p>Run means it was executed. Source means the file was read but the behaviour was never run. External means it came from outside the project. The split is 17, 17 and 11, and the two weaker classes are labelled as weaker instead of being blended into the strong one.</p>
+        </li>
+        <li>
+          <h3>Print the gaps at the top</h3>
+          <p>The binary actually exercised was <code>0.1.0-rc.7</code> while the source read was <code>0.1.1-rc.2</code>. That mismatch is stated in the guide rather than smoothed over, because it is the first thing anyone reproducing the work would hit.</p>
+        </li>
+      </ol>
     </div>
-  </div>
+  </section>
 
-  <div class="note">
-    <span class="k-label">Why this matters</span>
-    <p>
-      Source-reading is weakest precisely where behaviour is concerned. A file can describe an intent
-      that the running system does not honour. Where a claim in this guide is behavioural and carries
-      only a <span class="badge b-src">Source</span> badge, treat it as well-founded but unconfirmed, and check it before depending on it.
-    </p>
-  </div>
-
-  <h3>Contents</h3>
-  <ul class="toc">
-    <li><a href="#what"><span class="n">01</span>What a harness is, briefly</a></li>
-    <li><a href="#dsh"><span class="n">02</span>What DeepSeek Harness is</a></li>
-    <li><a href="#plugin-claim"><span class="n">03</span>"Everything is a plugin", qualified</a></li>
-    <li><a href="#three"><span class="n">04</span>Bundle, Profile, Preset</a></li>
-    <li><a href="#planes"><span class="n">05</span>Host plane and agent plane</a></li>
-    <li><a href="#presets"><span class="n">06</span>The four presets that ship</a></li>
-    <li><a href="#compose"><span class="n">07</span>Composition and layer order</a></li>
-    <li><a href="#byom"><span class="n">08</span>Bringing your own model</a></li>
-    <li><a href="#write"><span class="n">09</span>Writing a plugin</a></li>
-    <li><a href="#ecosystem"><span class="n">10</span>What has already been built</a></li>
-    <li><a href="#security"><span class="n">11</span>Security posture, honestly</a></li>
-    <li><a href="#landscape"><span class="n">12</span>How it compares</a></li>
-    <li><a href="#misconceptions"><span class="n">13</span>Commonly repeated errors</a></li>
-    <li><a href="#drift"><span class="n">14</span>Documentation drift at this commit</a></li>
-    <li><a href="#verified"><span class="n">15</span>How this was verified</a></li>
-  </ul>
-</section>
-
-<section id="what">
-  <div class="sec-num">01 — Context</div>
-  <h2>What a harness is, briefly</h2>
-  <p>
-    A model produces tokens. Everything else that makes an agent useful is the harness: the tools it may call, the loop
-    that decides when to stop, what goes into the context window and what gets evicted, which actions need
-    approval, where the conversation is persisted, and what the process may touch on disk.
-    The model is the engine; the harness is the rest of the car.
-  </p>
-  <p>
-    Three corrections to the usual framing are worth carrying into the rest of this guide. <span class="badge b-ext">External</span>
-  </p>
-  <ul>
-    <li>
-      <strong>A better harness does not always beat a better model.</strong> In one controlled comparison
-      by Databricks, swapping harnesses changed cost by roughly 2x with quality essentially unchanged. The
-      harness thesis is strongest for long-horizon, interactive work, not universally.
-    </li>
-    <li>
-      <strong>Harnesses are decreasingly model-agnostic.</strong> Harnesses and models are increasingly
-      post-trained together, so swapping the model under a harness tuned for another one tends to degrade
-      it in ways that are hard to see.
-    </li>
-    <li>
-      <strong>A harness is not an agent framework.</strong> LangGraph is a library for building harnesses.
-      Claude Code is a harness. The distinction matters when comparing them.
-    </li>
-  </ul>
-  <p>
-    This guide does not attempt a general introduction to harness engineering; that ground is well covered
-    elsewhere, notably by <a href="https://github.com/walkinglabs/learn-harness-engineering">walkinglabs/learn-harness-engineering</a>.
-    What follows is specific to DeepSeek Harness.
-  </p>
-</section>
-
-<section id="dsh">
-  <div class="sec-num">02 — Orientation</div>
-  <h2>What DeepSeek Harness is</h2>
-  <p>
-    DeepSeek Harness (<code>dsh</code> on the command line) is an MIT-licensed, TypeScript agent harness
-    published by DeepSeek. It is built on a vendored fork of <strong>Cordis</strong>, a dependency-injection
-    and plugin framework, and its organising idea is that the harness should be assembled from plugin layers
-    rather than configured within a fixed application. <span class="badge b-src">Source</span>
-  </p>
-  <p>
-    You launch it as a <em>profile</em>: an ordered stack of plugin bundles under your own overrides. The
-    documented entry point is <code>npx @deepseek-ai/dsh web</code>, which serves a local web UI on port
-    3080. There is also a headless profile for one-shot tasks, an ACP server for automation, and a JSON-RPC
-    SDK. It is web-first in a field that is mostly terminal-first. <span class="badge b-run">Run</span>
-  </p>
-
-  <h3>Scale, stated accurately</h3>
-  <p>
-    The repository contains 227 packages, all named <code>@deepseek-ai/dsh-*</code>. That number is widely
-    quoted and it is nearly useless, because no deployment loads 227 packages. The number that describes
-    what actually runs comes from asking the binary: <span class="badge b-run">Run</span>
-  </p>
-
-  <div class="t-wrap">
-  <table>
-    <thead><tr><th>Profile</th><th>Composed rows</th><th>Disabled</th><th>Active plugins</th></tr></thead>
-    <tbody>
-      <tr><td><code>web</code></td><td>129</td><td>25</td><td><strong>104</strong></td></tr>
-      <tr><td><code>headless</code></td><td>81</td><td>2</td><td><strong>79</strong></td></tr>
-      <tr><td><code>dsh-base</code> alone</td><td>78</td><td>1</td><td>77</td></tr>
-    </tbody>
-  </table>
-  </div>
-
-  <p>
-    So a real web session boots <strong>104 active plugins composed from 129 rows across two bundles</strong>.
-    Of the 128 distinct packages in that tree, only two come from Cordis itself; the rest are harness
-    packages. That is the honest measure of how much of this system is assembled rather than hard-wired.
-  </p>
-
-  <div class="warn">
-    <span class="k-label">The caveat that matters most</span>
-    <p>
-      <strong>There are no published harness-level benchmarks.</strong> The repository's
-      <code>BENCHMARK.md</code> is 231 bytes and three lines long; it explains how to run the Python SDK
-      against an example and contains no numbers at all. A question in the public launch thread asking
-      for harness-level rather than model-level benchmarks went unanswered.
-      <span class="badge b-run">Run</span> <span class="badge b-ext">External</span>
-    </p>
-    <p>
-      A harness marketed on the strength of its architecture has, as of this commit, published no evidence
-      that the architecture improves task outcomes. That does not make the architecture bad. Much of it is well built. But it should temper any claim that it is <em>better</em> rather than
-      <em>different</em>.
-    </p>
-  </div>
-
-  <h3>Open source, but not open governance</h3>
-  <p>
-    <code>CONTRIBUTING.md</code> is unusually direct, and reading it changes how you should relate to the
-    project: <span class="badge b-src">Source</span>
-  </p>
-  <ul>
-    <li><strong>External pull requests are not accepted</strong> — "We are sorry that we cannot accept external pull requests at the moment."</li>
-    <li><strong>The issue tracker is disabled.</strong> GitHub Discussions is the only channel for reporting bugs.</li>
-    <li><strong>Community plugins are explicitly not second-class:</strong> "We do not believe that packages in the official repository are inherently more important than packages created by the community... You may consider this repository an idea, an official showcase, and a source of inspiration, but not a mandate from us."</li>
-    <li><strong>The project asks for exactly two things from outsiders:</strong> publish plugins under the <code>dsh-plugin</code> GitHub topic, and "write blog posts and how-to guides about DeepSeek Harness."</li>
-  </ul>
-  <p>
-    The result is a project that is <strong>source-available and freely licensed without being
-    community-governed</strong>. That is a coherent position and the project states it plainly, but it is a
-    different thing from the "open source" most readers will assume, and worth knowing before you build a
-    business on it.
-  </p>
-</section>
-
-<section id="plugin-claim">
-  <div class="sec-num">03 — The central claim</div>
-  <h2>"Everything is a plugin", qualified</h2>
-  <p>
-    This is the project's signature line and the thing most repeated about it. It is an accurate
-    description of the architecture's intent and a false literal statement, and the source says so.
-    <span class="badge b-src">Source</span>
-  </p>
-  <p>
-    There is a kernel. It consists of Cordis's <code>Context</code>, the root <code>Fiber</code>, and the
-    built-in Reflect, Registry, Events and Logger services, plus host bootstrap. Bootstrap then mounts the
-    Loader <em>as a plugin</em>, and from that point the generalisation holds — the model
-    adapter, the tool registry, the session log and the agent loop are all plugins. But some things are
-    deliberately not: <code>Session</code>, for instance, is a plain class rather than a service.
-  </p>
-  <div class="note">
-    <span class="k-label">The precise version</span>
-    <p>
-      Nearly every capability above a small kernel is contributed through one common plugin lifecycle, and
-      no capability above that kernel is privileged over a third-party replacement. That is a strong claim
-      and it is substantially true. "Everything is a plugin" is shorthand for it.
-    </p>
-  </div>
-
-  <h3>Is the idea novel?</h3>
-  <p>
-    Deep plugin architectures are old: OSGi Declarative Services dates to 1999, and Eclipse extension
-    points, Emacs, VS Code, Spring and Guice all long predate this. Dependency-injected service registries
-    are not new, and neither is around-middleware. <strong>The Cordis paper concedes much of this itself</strong>,
-    noting that iPOJO's Gravity "directly prefigures Cordis's <code>ctx.provide</code>/<code>ctx.get</code>
-    pattern" — the authors' own word. <span class="badge b-ext">External</span>
-  </p>
-  <p>
-    What is claimed as novel is narrower and more defensible. The first is composition of inverses, where you write an inverse only for each atomic effect and the inverse of any composite is derived. The second is asynchronous teardown, which OSGi's synchronous deactivation callback cannot express.
-    The contested question is whether that justifies calling it a programming paradigm.
-  </p>
-  <p>
-    The sharpest public critique comes from a direct peer, the author of a competing harness, who granted
-    that per-registration cleanup handlers are nice but doubted the rest: the cross-plugin dependency
-    injection "comes with a lot of footguns... most plugins do not have dependencies on each other, so this
-    more complex system doesn't win you much." A substantive Chinese-language review reached a similar verdict: the architecture has novelty, the orchestration paradigm has no breakthrough. It also observed
-    that "everything is swappable" does not automatically yield better task success rates.
-    <span class="badge b-ext">External</span>
-  </p>
-
-  <div class="warn">
-    <span class="k-label">Evidence from the repository itself</span>
-    <p>
-      The Cordis paper argues that correctness becomes a structural property of the paradigm rather than a
-      matter of developer discipline. The repository's own vendoring log complicates that. Shipping
-      required <strong>18 documented local patches</strong> to the framework, and the log is exhaustive by
-      policy. Item 6 "locally closes <strong>three reentrant disposal gaps</strong>" in
-      <code>cordis/src/fiber.ts</code>. Item 12 describes fixing <strong>"a deadlock that exited 13 with no
-      diagnostic."</strong> <span class="badge b-run">Run</span>
-    </p>
-    <p>
-      That log is admirable engineering and admirable honesty. It is also evidence that these guarantees
-      took a great deal of developer discipline to obtain.
-    </p>
-  </div>
-
-  <h3>Where the genuine novelty probably is</h3>
-  <p>
-    Not in pluggability, which is old, but in <strong>the agent modifying its own runtime</strong>. The
-    <code>cordis</code> preset exposes model-facing tools that let the agent define and mount a plugin into
-    the process it is currently running in. Every other harness lets <em>you</em> extend it; this one lets
-    the <em>agent</em> extend itself mid-session. Reversible-effect machinery is over-engineering for a
-    static plugin set, and becomes load-bearing the moment something is mutating the runtime while it
-    runs. <em>This paragraph is inference, not a claim from the source.</em>
-  </p>
-</section>
-
-<section id="three">
-  <div class="sec-num">04 — The core distinction</div>
-  <h2>Bundle, Profile, Preset</h2>
-  <p>
-    These three words are the most common source of confusion about <code>dsh</code>, and nearly every
-    secondary explanation of the project conflates at least two of them. Each is documented upstream; what
-    is not documented anywhere is the contrast, which is the reader's actual problem.
-    <span class="badge b-run">Run</span>
-  </p>
-
-  <div class="t-wrap">
-  <table>
-    <thead><tr><th>Concept</th><th>What it is</th><th>Who owns it</th><th>What ships</th></tr></thead>
-    <tbody>
-      <tr>
-        <td><strong>Bundle</strong></td>
-        <td>An installable npm package that contributes one patch layer, declared by <code>dsh.bundle.patch</code> in its <code>package.json</code></td>
-        <td>The plugin author — this is what you publish</td>
-        <td><code>dsh-base</code>, <code>dsh-web-app</code>, <code>dsh-headless</code>, plus the Codex and Claude Code subagent bundles</td>
-      </tr>
-      <tr>
-        <td><strong>Profile</strong></td>
-        <td>A directory at <code>$DSH_HOME/profiles/&lt;name&gt;</code> holding an ordered bundle list plus your own patch layer. Booted with <code>--profile</code></td>
-        <td>The user, maintained via <code>dsh plugin</code></td>
-        <td><code>web</code> (base + web-app), <code>headless</code> (base + headless)</td>
-      </tr>
-      <tr>
-        <td><strong>Agent preset</strong></td>
-        <td>A per-session composition mounted under one agent's scope — the thing the UI calls a "mode"</td>
-        <td>The deployment, or you, by copying one</td>
-        <td><code>standard</code>, <code>code</code>, <code>minimal</code>, <code>cordis</code></td>
-      </tr>
-    </tbody>
-  </table>
-  </div>
-
-  <div class="note">
-    <span class="k-label">The rule</span>
-    <p>
-      A bundle is what an external author distributes. A profile is what a user assembles and boots. An
-      agent preset is what one session sees. <strong>Nothing is both.</strong> A package without
-      <code>dsh.bundle</code> still installs, but contributes no layer and does nothing.
-    </p>
-  </div>
-
-  <p>
-    Here is a real profile manifest, generated by the tool rather than transcribed from documentation:
-    <span class="badge b-run">Run</span>
-  </p>
-<pre><code><span class="c">// $DSH_HOME/profiles/web/package.json</span>
-{
-  <span class="y">"name"</span>: <span class="g">"dsh-profile-web"</span>,
-  <span class="y">"private"</span>: <span class="p">true</span>,
-  <span class="y">"dependencies"</span>: {},
-  <span class="y">"dsh"</span>: {
-    <span class="y">"profile"</span>: {
-      <span class="y">"bundles"</span>: [<span class="g">"@deepseek-ai/dsh-base"</span>, <span class="g">"@deepseek-ai/dsh-web-app"</span>]
-    }
-  }
-}</code></pre>
-  <p>
-    Profiles are directories, and the shipped ones are created for you: asking <code>dsh</code> to dump
-    its configuration was enough to bring both <code>web</code> and <code>headless</code> into existence on
-    disk. An arbitrary new name is not auto-created. Until you run <code>dsh plugin add</code>
-    against it, it resolves to nothing and composes zero rows.
-  </p>
-</section>
-
-<section id="planes">
-  <div class="sec-num">05 — The distinction nobody explains</div>
-  <h2>Host plane and agent plane</h2>
-  <p>
-    Once you have more than one session in a process, the question of <em>where</em> a plugin registers
-    becomes the thing that breaks. The shipped <code>code</code> preset explains this better than the
-    architecture documentation does, in a header comment on the file itself:
-    <span class="badge b-run">Run</span>
-  </p>
-  <div class="note">
-    <p>
-      "This file is an <strong>agent-plane</strong> composition. It is mounted under one agent's scope
-      context, so every tool and prompt section it registers belongs to that session alone. The host
-      composition keeps everything a preset must not own: the registries themselves, the sandbox and
-      approval stack, persistence, and the model route."
-    </p>
-  </div>
-
-  <p>So the split is:</p>
-  <div class="cards">
-    <div class="card">
-      <h4>Host plane</h4>
-      <p>Process-wide and shared. The registries, the sandbox, the approval stack, persistence, the model
-      route. Providers live here. A bundle patch mounts here.</p>
+  <!-- ============================================================= JOBS -->
+  <section id="jobs" aria-labelledby="jobs-heading">
+    <div class="container">
+      <h2 id="jobs-heading">Three things it is for</h2>
+      <p class="lede">All three come out of the same 16 sections, because what makes the guide useful for building is the same property that makes it useful for a security review: it tells you which sentences were checked and which were only read.</p>
+      <ul class="jobs">
+        <li>
+          <span class="job-kicker">Orient</span>
+          <h3>Size it before you commit a week</h3>
+          <p>What <code>dsh</code> is at accurate scale: the plane it occupies, what the presets really are, and the four preset IDs that actually ship rather than the ones the threads list.</p>
+        </li>
+        <li>
+          <span class="job-kicker">Build</span>
+          <h3>Write a plugin that loads first time</h3>
+          <p>A working plugin sits in this repository at <code>plugins/dsh-plugin-dev/</code> with a <code>node verify.mjs</code> you can run yourself. The guide walks its three files and the composition traps between them, including the patch behaviour that has no deep merge.</p>
+        </li>
+        <li>
+          <span class="job-kicker">Assess</span>
+          <h3>Judge the security posture honestly</h3>
+          <p>Network is not in the sandbox policy vocabulary, reads are unrestricted, and the environment scrub is not a credential firewall. The guide says all three in <a href="./guide.html#security">section 11</a>, with the package sources each one came from.</p>
+        </li>
+      </ul>
     </div>
-    <div class="card">
-      <h4>Agent plane</h4>
-      <p>Per-session and private. Tools, prompt sections, persona. An agent preset mounts here, and native
-      sessions run beside each other in the same process, each seeing its own catalog.</p>
+  </section>
+
+  <!-- ============================================================ PROOF -->
+  <section class="band" id="proof" aria-labelledby="proof-heading">
+    <div class="container">
+      <h2 id="proof-heading">The six claims that did not survive</h2>
+      <p class="lede">Each of these is repeated widely, and each is wrong in a way that changes a decision you might make. The key names the subject; the text is what the binary or the source actually says.</p>
+      <div class="proof-grid">
+        <div class="demo-panel">
+          <p class="demo-label">misconceptions</p>
+          <p class="demo-intro">Six corrections, with the evidence class each one rests on.</p>
+          <ul class="spec-list">
+            <li>
+              <span class="key">presets</span>
+              <span class="name">There is no <code>orchestrator</code>. The IDs are standard, code, minimal and cordis<span class="tag">4 IDs</span></span>
+              <span class="meta">Run</span>
+            </li>
+            <li>
+              <span class="key">code mode</span>
+              <span class="name">Changes tool presentation, not the model. The program is ephemeral and never saved</span>
+              <span class="meta">Run</span>
+            </li>
+            <li>
+              <span class="key">kernel</span>
+              <span class="name">There is a kernel. Nearly everything above it is a plugin, and nothing above it is privileged</span>
+              <span class="meta">Source</span>
+            </li>
+            <li>
+              <span class="key">trajectory</span>
+              <span class="name">A turn-aware event ledger. It cannot attribute every loop action to an owning plugin</span>
+              <span class="meta">Source</span>
+            </li>
+            <li>
+              <span class="key">sandbox</span>
+              <span class="name">Containment, not a security boundary. Network is not in the policy vocabulary</span>
+              <span class="meta">Source</span>
+            </li>
+            <li class="is-main">
+              <span class="key">227</span>
+              <span class="name">The repository package count. A real web session boots 104 active plugins<span class="tag">129 rows</span></span>
+              <span class="meta">Run</span>
+            </li>
+          </ul>
+        </div>
+        <div class="proof-copy">
+          <p>The last row is the one worth dwelling on. 227 is a real number, it is just a count of directories in a monorepo rather than a measure of anything that runs. Compose a real web profile and 129 rows resolve to 104 active plugins; the headless profile boots 79. Three numbers, three different questions, and the one in general circulation answers none of them.</p>
+          <div class="stat-row">
+            <div class="stat"><b>45</b><span>claims badged with how they were checked</span></div>
+            <div class="stat"><b>17</b><span>executed against the shipped binary</span></div>
+            <div class="stat"><b>6</b><span>widely repeated claims corrected</span></div>
+          </div>
+          <p>The diagnostic that settles most of these ships with the product. It prints the fully composed tree without booting it, annotated with which bundle contributed each row and which bundle patched it:</p>
+          <div class="terminal">
+<pre><span class="prompt">$</span> dsh --profile web --dump-default-config
+
+<span class="comment"># == @deepseek-ai/dsh-base</span>
+- id: timer
+  name: '@deepseek-ai/cordis-plugin-timer'
+<span class="comment"># == @deepseek-ai/dsh-base, patched by @deepseek-ai/dsh-web-app</span>
+- id: hmr
+  name: '@deepseek-ai/cordis-plugin-hmr'
+  config:
+    root: [.]
+  disabled: true</pre>
+          </div>
+          <p>Every correction above is written out in full in <a href="./guide.html#misconceptions">section 15</a>, with the command or the file it came from.</p>
+        </div>
+      </div>
     </div>
-  </div>
+  </section>
 
-  <div class="warn">
-    <span class="k-label">A real footgun, caught at mount</span>
-    <p>
-      From the same file: "A service row here <strong>MUST</strong> sit inside a group carrying an
-      <code>isolate</code> realm. Without one it publishes into the root realm, where it is process-global
-      rather than per-session and <strong>the second session mounting this preset collides with the
-      first</strong>; <code>dsh-agent-presets</code> rejects that at mount."
-    </p>
-    <p>
-      This is the single best "you will get this wrong" item in the product. It fails loudly rather than
-      silently, which is the right design, but it will not be obvious why until you have read the
-      sentence above.
-    </p>
-  </div>
-
-  <p>
-    The practical consequence for anyone building something real: <strong>a provider and its
-    model-facing tool are two different roles that belong on two different planes.</strong> Mount the
-    provider from a bundle patch on the host plane; mount the tool that consumes it from a preset on the
-    agent plane. This is exactly how the shipped Codex subagent bundle is arranged.
-  </p>
-</section>
-
-<section id="presets">
-  <div class="sec-num">06 — What ships</div>
-  <h2>The four presets that ship</h2>
-  <p>
-    Exactly four agent presets ship, discovered from directory names rather than declared in an
-    enumeration. The table below was read from the installed npm package — the artifact users run. A recursive search of that tree for <code>orchestrator</code> returns nothing.
-    <span class="badge b-run">Run</span>
-  </p>
-
-  <div class="t-wrap">
-  <table>
-    <thead><tr><th>ID</th><th>Name in the UI</th><th>Order</th><th>What it is</th></tr></thead>
-    <tbody>
-      <tr><td><code>standard</code></td><td>标准模式</td><td>1</td><td>Full coding agent: file editing, shell, file and web search, skills, plan, goals, subagents, workflows. The default.</td></tr>
-      <tr><td><code>code</code></td><td><strong>PTC 模式</strong></td><td>2</td><td>All of standard, with tools presented through the Code Mode SDK so the model composes multi-step operations in one TypeScript program.</td></tr>
-      <tr><td><code>minimal</code></td><td>极简模式</td><td>3</td><td>A two-tool agent: persistent bash and <code>str_replace_editor</code> only.</td></tr>
-      <tr><td><code>cordis</code></td><td>创造模式</td><td>4</td><td>All of standard, plus runtime inspection, plugin experimentation, and preset-authoring guidance.</td></tr>
-    </tbody>
-  </table>
-  </div>
-
-  <div class="note">
-    <span class="k-label">Two things worth noticing</span>
-    <p>
-      <strong>The UI names ship in Chinese only</strong>, including in the English package. An
-      English-speaking reader looking for "Code mode" in the interface will find <strong>PTC 模式</strong>
-      instead. The mode usually described as "creator" has the ID <code>cordis</code> and displays as
-      创造模式.
-    </p>
-    <p>
-      Upstream documentation is bilingual throughout, and a substantial part of this community is
-      Chinese-speaking. An English-only guide reaches a fraction of it.
-    </p>
-  </div>
-
-  <h3>What Code Mode actually does</h3>
-  <p>
-    This is the most misdescribed feature in the project, so here is the shipped file's own header comment,
-    verbatim: <span class="badge b-run">Run</span>
-  </p>
-  <div class="note">
-    <p>
-      "Everything in <code>standard</code> is here unchanged. What is added is the
-      <code>tool-presentation</code> row: instead of one tool call per action, the model writes a TypeScript
-      program against a generated SDK and <code>run_code</code> executes it, so a sequence that would be
-      five round trips becomes one... what this preset owns is the <strong>PRESENTATION</strong> of that
-      registry for this agent alone."
-    </p>
-  </div>
-  <p>
-    Code Mode is a <strong>tool-presentation change that collapses round trips</strong>. The program is an
-    ephemeral call executed in a fresh worker with no cross-run state. It is not a durable artifact, and not a
-    conversion of your session into a standalone program.
-  </p>
-</section>
-
-<section id="compose">
-  <div class="sec-num">07 — Assembly</div>
-  <h2>Composition and layer order</h2>
-  <p>
-    A profile composes over an empty root in a fixed order. Each layer is a list of patch operations
-    against rows identified by <code>id</code>: <span class="badge b-src">Source</span>
-  </p>
-  <ol>
-    <li>each bundle's patch, in <code>dsh.profile.bundles</code> order</li>
-    <li>then the profile's own <code>cordis.patch.yml</code></li>
-    <li>then <code>$DSH_HOME/cordis.patch.yml</code></li>
-    <li>then any <code>--patch</code> overlays, in the order given</li>
-  </ol>
-
-  <div class="warn">
-    <span class="k-label">The behaviour that will surprise you</span>
-    <p>
-      Later layers win per row, and <strong>a patch replaces a row's entire <code>config</code>. There is
-      no deep merge.</strong> If you patch a row to change one field, you must restate every other field
-      you want to keep. This is the composition footgun most likely to cost you an afternoon.
-    </p>
-  </div>
-
-  <h3>The best diagnostic in the product</h3>
-  <p>
-    <code>--dump-config</code> and <code>--dump-default-config</code> print the fully composed tree without
-    booting it, annotated with <strong>which bundle contributed each row and which bundle patched it</strong>.
-    No secondary explanation of this project mentions it, and it makes the layering model concrete in a way
-    no diagram does: <span class="badge b-run">Run</span>
-  </p>
-<pre><code><span class="c">$ dsh --profile web --dump-default-config</span>
-
-<span class="c"># == @deepseek-ai/dsh-base</span>
-- <span class="y">id</span>: timer
-  <span class="y">name</span>: <span class="g">'@deepseek-ai/cordis-plugin-timer'</span>
-<span class="c"># == @deepseek-ai/dsh-base, patched by @deepseek-ai/dsh-web-app</span>
-- <span class="y">id</span>: hmr
-  <span class="y">name</span>: <span class="g">'@deepseek-ai/cordis-plugin-hmr'</span>
-  <span class="y">config</span>:
-    <span class="y">root</span>: [<span class="g">.</span>]
-  <span class="y">disabled</span>: <span class="p">true</span></code></pre>
-  <p>
-    It needs no API key and makes no model call, so it is the cheapest way to answer
-    "what is actually loaded?" and the first thing to reach for when a plugin appears to do nothing.
-  </p>
-</section>
-
-<section id="byom">
-  <div class="sec-num">08 — The seam most people want</div>
-  <h2>Bringing your own model</h2>
-  <p>
-    Composition is abstract until you use it for something you actually want. For most readers that
-    something is the model. A harness published by a model vendor invites one obvious suspicion: that
-    the model connection is welded in. It is not. The verdict is more interesting than either
-    "DeepSeek-only" or "run anything", and the gap between those two is where the practical detail lives.
-  </p>
-
-  <div class="note">
-    <span class="k-label">The verdict in one line</span>
-    <p>
-      The seam is genuine and the reach is wide, but breadth is <strong>configuration, not the shipped
-      default</strong>. "Run any model" is marketing. <strong>"Run essentially every model that matters,
-      after configuration"</strong> is accurate.
-    </p>
-  </div>
-
-  <h3>The seam is real</h3>
-  <p>
-    <code>LlmAdapter</code> is an abstract class in the LLM service, not a DeepSeek client with hooks
-    bolted on. Its only required method is <code>stream()</code>. Adapters are registered with
-    <code>ctx.llm.registerAdapter(providers, adapter)</code>, and because registration is effect-owned,
-    an adapter disappears when its plugin unloads, exactly like any other contribution described in
-    <a href="#plugin-claim">section 03</a>. <span class="badge b-src">Source</span>
-  </p>
-  <p>
-    The service documents one obligation on adapter authors that is easy to miss: every provider HTTP
-    request must include <code>attributionHeaders()</code>. The two shipped adapters satisfy it through
-    completely different internals, one by direct fetch and one through a library header hook.
-    <span class="badge b-src">Source</span>
-  </p>
-
-  <div class="t-wrap">
-  <table>
-    <thead><tr><th>Package</th><th>What it is</th><th>Routes it registers</th></tr></thead>
-    <tbody>
-      <tr><td><code>llm/llm</code></td><td>The service and the neutral <code>LlmAdapter</code> base</td><td>None; it is the seam itself</td></tr>
-      <tr><td><code>llm/llm-deepseek</code></td><td>First-party adapter, direct fetch</td><td><code>deepseek-official</code></td></tr>
-      <tr><td><code>llm/llm-pi-ai</code></td><td>Multi-provider twin, delegates to pinned <code>@earendil-works/pi-ai@0.82.1</code></td><td>Zero, until settings supply profiles</td></tr>
-      <tr><td><code>llm/llm-retry</code></td><td>Optional retry executor</td><td>Not a provider</td></tr>
-      <tr><td><code>test-support/llm-replay</code></td><td>Deterministic replay for tests</td><td>Not a production network provider</td></tr>
-    </tbody>
-  </table>
-  </div>
-
-  <h3>How far the catalog actually reaches</h3>
-  <p>
-    The <code>llm-pi-ai</code> adapter delegates to a pinned third-party catalog. Rather than repeat a
-    figure from someone else's summary, the count below was produced by calling
-    <code>getBuiltinProviders()</code> against version <code>0.82.1</code>, the exact version the
-    repository pins. It returns <strong>37 provider IDs</strong>: <span class="badge b-run">Run</span>
-  </p>
-  <div class="note">
-    <p>
-      <code>amazon-bedrock</code>, <code>ant-ling</code>, <code>anthropic</code>,
-      <code>azure-openai-responses</code>, <code>cerebras</code>, <code>cloudflare-ai-gateway</code>,
-      <code>cloudflare-workers-ai</code>, <code>deepseek</code>, <code>fireworks</code>,
-      <code>github-copilot</code>, <code>google</code>, <code>google-vertex</code>, <code>groq</code>,
-      <code>huggingface</code>, <code>kimi-coding</code>, <code>minimax</code>, <code>minimax-cn</code>,
-      <code>mistral</code>, <code>moonshotai</code>, <code>moonshotai-cn</code>, <code>nvidia</code>,
-      <code>openai</code>, <code>openai-codex</code>, <code>opencode</code>, <code>opencode-go</code>,
-      <code>openrouter</code>, <code>qwen-token-plan</code>, <code>qwen-token-plan-cn</code>,
-      <code>together</code>, <code>vercel-ai-gateway</code>, <code>xai</code>, <code>xiaomi</code>,
-      <code>xiaomi-token-plan-ams</code>, <code>xiaomi-token-plan-cn</code>,
-      <code>xiaomi-token-plan-sgp</code>, <code>zai</code>, <code>zai-coding-cn</code>
-    </p>
-  </div>
-  <p>
-    The Anthropic Messages, OpenAI Completions, and OpenAI Responses implementations behind these are
-    real imported modules, not stubs. <span class="badge b-src">Source</span>
-  </p>
-
-  <h3>Three limits worth knowing before you plan around this</h3>
-
-  <div class="warn">
-    <span class="k-label">1. The multi-provider adapter ships dormant</span>
-    <p>
-      The base composition mounts <code>llm-pi-ai</code> with <strong>zero routes</strong> and no extra
-      models in the picker, while separately setting the default to provider
-      <code>deepseek-official</code>, model <code>deepseek-v4-flash</code>. Routes register live only
-      once a <code>llm-pi-ai:</code> settings section supplies provider profiles, and they drop again
-      when that section empties. The comment in the base patch states the division plainly: which
-      adapters exist is composition, which providers run is the user's settings document. So the
-      out-of-box live route is DeepSeek-only, and every one of those 37 providers is a configuration
-      step away rather than a default. <span class="badge b-src">Source</span>
-    </p>
-  </div>
-
-  <div class="warn">
-    <span class="k-label">2. A hand-declared endpoint reaches three protocols, not arbitrary wire formats</span>
-    <p>
-      If you declare a route yourself instead of picking a catalog entry, you get exactly
-      <code>openai-completions</code>, <code>openai-responses</code>, and <code>anthropic-messages</code>.
-      This is deliberate and the source explains why: Bedrock signs with SigV4 over AWS credentials and
-      a region, Vertex needs a project, a location and application-default credentials, Azure needs an
-      api-version, and Codex authenticates through OAuth. None of that fits a configuration shape of
-      key, endpoint and headers, so offering it would hand back a provider that cannot authenticate.
-      Catalog routes still reach every protocol through their own provider; only an explicit override is
-      refused. <span class="badge b-src">Source</span>
-    </p>
-  </div>
-
-  <div class="warn">
-    <span class="k-label">3. No retry, caching, or rate limiting in the core service</span>
-    <p>
-      Provider registration stores a retry policy, but <code>llm/stream</code> is a single-attempt call
-      wrapper. Retry is a separate optional plugin, <code>dsh-llm-retry</code>, loaded by the shared
-      example spine. Treat resilience as something you compose in, not something you inherit.
-      <span class="badge b-src">Source</span>
-    </p>
-  </div>
-
-  <h3>What this means in practice</h3>
-  <p>
-    If you already pay for a frontier model, the useful reading is that <code>anthropic</code>,
-    <code>openai</code>, and <code>github-copilot</code> are catalog entries, so reaching them is a
-    settings exercise rather than an engineering one. If you run open weights locally, Ollama and most
-    self-hosted servers expose an OpenAI-compatible endpoint, which is precisely the
-    <code>openai-completions</code> protocol a hand-declared route supports. The community has already
-    built at least one adapter of its own, an OAuth-based GitHub Copilot provider, which is the clearest
-    available evidence that the seam is usable from outside the repository.
-    <span class="badge b-ext">External</span>
-  </p>
-  <p>
-    A protocol outside those three still needs a new adapter plugin. That is not a workaround; it is the
-    intended extension path, and it is the same three-files-and-one-command exercise as
-    <a href="#write">section 09</a>. An adapter is simply a plugin whose contribution happens to be a
-    model route.
-  </p>
-
-  <div class="note">
-    <span class="k-label">The limit of this section</span>
-    <p>
-      Everything above is read from source or executed against the pinned catalog.
-      <strong>No model was invoked through any of these routes.</strong> This section describes what the
-      code supports and what the shipped composition selects. It says nothing about latency, output
-      quality, or how well any given model drives this agent loop.
-    </p>
-  </div>
-</section>
-
-<section id="write">
-  <div class="sec-num">09 — Practice</div>
-  <h2>Writing a plugin</h2>
-  <p>
-    An external plugin is <strong>three files and one command</strong>. No build step, no TypeScript
-    toolchain, no bundler. The framework packages are peer dependencies supplied by the host at runtime,
-    so plain JavaScript works. The sequence below was executed end to end.
-    <span class="badge b-run">Run</span>
-  </p>
-
-  <h4>1. <code>package.json</code>: the <code>dsh.bundle</code> key is what makes it installable</h4>
-<pre><code>{
-  <span class="y">"name"</span>: <span class="g">"dsh-hello-probe"</span>,
-  <span class="y">"version"</span>: <span class="g">"0.1.0"</span>,
-  <span class="y">"type"</span>: <span class="g">"module"</span>,
-  <span class="y">"main"</span>: <span class="g">"index.js"</span>,
-  <span class="y">"files"</span>: [<span class="g">"index.js"</span>, <span class="g">"cordis.patch.yml"</span>],
-  <span class="y">"dsh"</span>: { <span class="y">"bundle"</span>: { <span class="y">"patch"</span>: <span class="g">"./cordis.patch.yml"</span> } }
-}</code></pre>
-
-  <h4>2. <code>index.js</code>: named exports only</h4>
-<pre><code><span class="p">export const</span> name = <span class="g">'hello-probe'</span>
-
-<span class="p">export function</span> <span class="y">apply</span>(ctx) {
-  ctx.<span class="y">logger</span>(<span class="g">'hello-probe'</span>).<span class="y">info</span>(<span class="g">'external plugin loaded'</span>)
-}</code></pre>
-
-  <h4>3. <code>cordis.patch.yml</code>: <code>name</code> must match the package name exactly</h4>
-<pre><code>- <span class="y">insert</span>:
-    - <span class="y">id</span>: hello-probe
-      <span class="y">name</span>: dsh-hello-probe</code></pre>
-
-  <h4>4. Install it</h4>
-<pre><code><span class="c">$ dsh plugin --profile probe add ./dsh-hello-probe</span>
-dsh: initialized profile probe at $DSH_HOME/profiles/probe
-+ dsh-hello-probe
-Done in 223ms</code></pre>
-
-  <div class="note">
-    <span class="k-label">Undocumented, and useful to know</span>
-    <p>
-      <code>dsh plugin ... add</code> does more than install a dependency: it
-      <strong>automatically appends the package to <code>dsh.profile.bundles</code></strong>. You do not
-      hand-edit the manifest. Note the resulting order: the new bundle lands <em>after</em>
-      <code>dsh-base</code>, so it patches base rather than being patched by it. Install order decides
-      layer order.
-    </p>
-  </div>
-
-  <h3>Three traps</h3>
-  <div class="cards">
-    <div class="card">
-      <h4>Never also default-export</h4>
-      <p>A function plugin uses named exports: <code>name</code>, optional <code>inject</code>, optional
-      <code>Config</code>, and <code>apply</code>. A <em>service</em> package instead default-exports its
-      class. Mixing the two makes the loader silently discard namespace metadata such as
-      <code>inject</code>, so your dependencies stop being awaited and you get a confusing
-      undefined-service crash.</p>
+  <!-- ======================================================= COMPARISON -->
+  <section id="different" aria-labelledby="different-heading">
+    <div class="container">
+      <h2 id="different-heading">Compared with the two things you would otherwise read</h2>
+      <div class="compare-grid">
+        <div class="compare-card">
+          <h3>The project's own documentation</h3>
+          <p>Authoritative, current, and far more complete than any outside guide will ever be. It is the right place to start and the right place to end up. The boundary is that documentation describes intent as much as behaviour, and a file can describe an intent the running system does not honour. When the two diverge, the docs are not the thing that tells you.</p>
+        </div>
+        <div class="compare-card">
+          <h3>The explainer posts and threads</h3>
+          <p>Fast, readable, and usually first to a new release, which is genuinely valuable when you are deciding whether to look at all. The boundary is that they inherit each other's numbers. Both the 227 figure and the <code>orchestrator</code> preset circulate widely, and neither one survives contact with the binary.</p>
+        </div>
+      </div>
+      <p class="compare-close"><strong>The only real advantage this guide has is that it marks its own weak spots</strong>, including the 17 claims it read from source but never executed.</p>
     </div>
-    <div class="card">
-      <h4>Provider availability is not model access</h4>
-      <p>Registering a web, skill, subagent or workflow provider does <em>not</em> give the agent a tool.
-      The matching consumer must also be in that agent's composition. A web provider needs
-      <code>dsh-tool-web</code>, a skill provider needs <code>dsh-tool-skill</code>, and so on. This is the
-      most likely reason a correctly written plugin appears to do nothing.</p>
+  </section>
+
+  <!-- ======================================================= ASSURANCES -->
+  <section class="prose-section band" id="assurances" aria-labelledby="assurances-heading">
+    <div class="container">
+      <h2 id="assurances-heading">What this is, and what it is not</h2>
+      <p>This is an independent guide written by one person. It is not a vendor document, it was not reviewed by the harness maintainers, and it had no access to anything you could not clone yourself. Where it is wrong, it is wrong in public at a commit you can check out, which is the only form of wrong that is useful to anybody.</p>
+      <p>The strongest evidence in it is a Run badge and there are 17 of those. The weakest is a Source badge, meaning the file was read but the behaviour was never executed, and there are 17 of those too. Treat the second group as well-founded and unconfirmed, and check it before you depend on it. That instruction is in <a href="./guide.html#how-to-read">the guide's own preamble</a>, not buried here.</p>
+      <ul class="assurance-list">
+        <li>
+          <svg class="icon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 2 4 5v6c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V5l-8-3Zm0 2.2 6 2.2v4.6c0 4-2.6 6.9-6 8-3.4-1.1-6-4-6-8V6.4l6-2.2Z"/></svg>
+          <span>MIT licensed, including the worked plugin example</span>
+        </li>
+        <li>
+          <svg class="icon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 2 4 5v6c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V5l-8-3Zm0 2.2 6 2.2v4.6c0 4-2.6 6.9-6 8-3.4-1.1-6-4-6-8V6.4l6-2.2Z"/></svg>
+          <span>No affiliation with DeepSeek or the harness maintainers</span>
+        </li>
+        <li>
+          <svg class="icon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 2 4 5v6c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V5l-8-3Zm0 2.2 6 2.2v4.6c0 4-2.6 6.9-6 8-3.4-1.1-6-4-6-8V6.4l6-2.2Z"/></svg>
+          <span>One HTML file with no tracking, no analytics and no network calls</span>
+        </li>
+        <li>
+          <svg class="icon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 2 4 5v6c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V5l-8-3Zm0 2.2 6 2.2v4.6c0 4-2.6 6.9-6 8-3.4-1.1-6-4-6-8V6.4l6-2.2Z"/></svg>
+          <span>Pinned to <code>b150a55</code> so every claim stays checkable</span>
+        </li>
+        <li>
+          <svg class="icon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 2 4 5v6c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V5l-8-3Zm0 2.2 6 2.2v4.6c0 4-2.6 6.9-6 8-3.4-1.1-6-4-6-8V6.4l6-2.2Z"/></svg>
+          <span>The version gap, <code>0.1.0-rc.7</code> run against <code>0.1.1-rc.2</code> source, is printed in the guide</span>
+        </li>
+        <li>
+          <svg class="icon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 2 4 5v6c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V5l-8-3Zm0 2.2 6 2.2v4.6c0 4-2.6 6.9-6 8-3.4-1.1-6-4-6-8V6.4l6-2.2Z"/></svg>
+          <span>Chinese preset display names are quoted as shipped, not translated away</span>
+        </li>
+      </ul>
     </div>
-    <div class="card">
-      <h4>A bundle alone gives you no UI</h4>
-      <p>A newly created profile composes base only. It boots cleanly and then sits there with no
-      interface, because an app bundle (<code>dsh-web-app</code> or <code>dsh-headless</code>) is what provides a surface. Add one, or install into an existing profile.</p>    </div>
-  </div>
+  </section>
 
-  <div class="warn">
-    <span class="k-label">Check your dependency pin</span>
-    <p>
-      At the time of writing, the <code>latest</code> npm dist-tag for
-      <code>@deepseek-ai/dsh-tools</code> points at <code>0.0.1-rc.1</code>, the first release ever published, while the current line ships under the <code>next</code> tag. A plain
-      <code>npm install @deepseek-ai/dsh-tools</code> therefore resolves to a stale package whose own peer
-      dependencies are an entire generation behind. Pin explicitly, or install <code>@next</code>.
-      <span class="badge b-ext">External</span>
-    </p>
-  </div>
+  <!-- ============================================================== FAQ -->
+  <section id="faq" aria-labelledby="faq-heading">
+    <div class="container">
+      <h2 id="faq-heading">Frequently asked questions</h2>
+      <div class="faq-list">
 
-  <h3>Where you can attach</h3>
-  <p>
-    The documented extension seams, each consumed by declaring <code>inject</code> and calling a
-    registration method that returns a disposer: <span class="badge b-src">Source</span>
-  </p>
-  <ul>
-    <li><strong>Tools</strong>: <code>ctx.tools.register(defineTool({...}))</code></li>
-    <li><strong>Tool policy</strong>: the <code>tools/pre-execute</code>, <code>tools/execute</code>, <code>tools/post-execute</code> and <code>tools/result</code> waterfalls</li>
-    <li><strong>Web</strong>: search and fetch providers</li>
-    <li><strong>Skills</strong>: a discovery provider, or one runtime skill</li>
-    <li><strong>Subagents</strong>: implement a provider, expose it with a configured delegation tool</li>
-    <li><strong>Workflows</strong>: an engine, plus observation events</li>
-    <li><strong>Session events</strong>: declaration-merge your own durable payloads</li>
-    <li><strong>Compaction</strong>: provide or consume the engine</li>
-    <li><strong>Context</strong>: dynamic request context, turn-specific injection, and system-prompt sections</li>
-    <li><strong>LLM adapters</strong>: <code>ctx.llm.registerAdapter(...)</code></li>
-  </ul>
-  <p>
-    Two rules govern all of them. <strong>Every registration is an effect</strong> — it returns a disposer,
-    and disposal must remove the contribution. <strong>Waterfall listeners must call
-    <code>next()</code></strong> to delegate; returning without it short-circuits the chain.
-  </p>
-</section>
+        <details class="faq-item">
+          <summary>How is this different from the official DeepSeek Harness documentation?<svg class="chevron" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M9 6l6 6-6 6V6z"/></svg></summary>
+          <div class="faq-answer"><p>It is smaller, it is not authoritative, and it should not replace the docs. What it adds is a provenance layer the docs do not carry, because they have no reason to: an official document does not need to tell you which of its sentences were executed, since it is written by the people who wrote the code. An outsider does need to tell you, and the badge on each claim is that admission made structural. Read the guide to calibrate, then read the docs to build.</p></div>
+        </details>
 
-<section id="ecosystem">
-  <div class="sec-num">10 — Ecosystem</div>
-  <h2>What has already been built</h2>
-  <p>
-    The most striking thing about this project is not its architecture. It is how fast people built on it. As of 2026-08-24, <strong>11,258 GitHub repositories carry the <code>dsh-plugin</code> topic</strong>,
-    on a harness still at <code>0.1.1-rc.2</code>. That is a remarkable community response, and it is also
-    a number that needs careful handling. <span class="badge b-ext">External</span>
-  </p>
+        <details class="faq-item">
+          <summary>Is this affiliated with DeepSeek in any way?<svg class="chevron" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M9 6l6 6-6 6V6z"/></svg></summary>
+          <div class="faq-answer"><p>No. No sponsorship, no review, no early access, no contact. Everything in it came from the public repository and the published npm artifact, both of which you can fetch yourself. DeepSeek Harness is MIT licensed and so is this guide, which is the whole of the relationship.</p></div>
+        </details>
 
-  <div class="warn">
-    <span class="k-label">The topic is a discovery signal, not a verified index</span>
-    <p>
-      A two-stratum audit of 200 of those repositories (100 by stars, 100 drawn deterministically from the recently-updated window) found <strong>81 native plugins and 22 verified multi-tool
-      integrations</strong>. The rest either showed no plugin signal or could not be determined from a
-      root manifest.
-    </p>
-    <p>
-      Some of that is ordinary topic drift rather than anything untoward: <code>reactive-resume</code>
-      (41,636 stars, a resume builder), <code>PicGo</code> (27,028, an image uploader) and
-      <code>nocobase</code> (23,811, a no-code platform) all carry the topic. And roughly a quarter were
-      undetermined simply because the plugin sits in a monorepo subdirectory rather than at the root, so
-      the true count is certainly higher than 81. <strong>Browse the topic to discover plugins; do not
-      cite its count as a census.</strong>
-    </p>
-  </div>
+        <details class="faq-item">
+          <summary>The guide says 104 plugins and another post says 227. Which is right?<svg class="chevron" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M9 6l6 6-6 6V6z"/></svg></summary>
+          <div class="faq-answer"><p>Both, for different questions. 227 counts packages in the repository. 104 is how many plugins are actually active in a composed web session, resolved from 129 rows; the headless profile boots 79. If the question is "how much machinery runs when I start this", 227 is the wrong answer by more than a factor of two. Run <code>dsh --profile web --dump-default-config</code> and you get the composed tree directly rather than having to trust anyone's count, including this one.</p></div>
+        </details>
 
-  <p>
-    Detail matters less than the shape, which is unambiguous: this is a real, active ecosystem with
-    genuine traction. A sample of what has shipped: <span class="badge b-ext">External</span>
-  </p>
+        <details class="faq-item">
+          <summary>You ran 0.1.0-rc.7 but read 0.1.1-rc.2 source. Does that invalidate the guide?<svg class="chevron" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M9 6l6 6-6 6V6z"/></svg></summary>
+          <div class="faq-answer"><p>It weakens specific claims rather than the whole document, and it is stated up front for exactly that reason. Anything carrying a Run badge was executed on <code>0.1.0-rc.7</code>, so a behaviour changed between the two release candidates would not show up. Anything carrying a Source badge was read at <code>b150a55</code>. The honest position is that the structural claims are pinned tightly and the behavioural ones lag by one release candidate, which is the sort of thing a guide should tell you rather than let you discover.</p></div>
+        </details>
 
-  <div class="t-wrap">
-  <table>
-    <thead><tr><th>Project</th><th>Stars</th><th>What it does</th></tr></thead>
-    <tbody>
-      <tr><td><code>nexu-io/open-design</code></td><td>90,972</td><td>Design workspace with native DSH support alongside Claude Code, Codex and Cursor</td></tr>
-      <tr><td><code>Nagi-ovo/voyager</code></td><td>19,822</td><td>Browser enhancement and prompt manager across DSH and other AI web UIs</td></tr>
-      <tr><td><code>DSH-better-sidebar</code></td><td>2,792</td><td>VS Code-style sidebar: files, terminal, Git, browser, chat, subagent panels</td></tr>
-      <tr><td><code>dsh-TUI</code></td><td>2,434</td><td>Terminal UI with live status, streaming reasoning, rollback, context metrics</td></tr>
-      <tr><td><code>dsh-market</code></td><td>2,155</td><td>In-product marketplace for browsing and installing plugins</td></tr>
-      <tr><td><code>Tencent/BrowserSkill</code></td><td>1,294</td><td>Logged-in browser control, with a nested native DSH plugin</td></tr>
-      <tr><td><code>dsh-context</code></td><td>990</td><td>Context composition, compaction, pruning and a usage dashboard</td></tr>
-      <tr><td><code>dsh-im</code></td><td>752</td><td>Bridges DSH to Feishu, WeChat, DingTalk, Slack, Telegram, Discord and more</td></tr>
-    </tbody>
-  </table>
-  </div>
+        <details class="faq-item">
+          <summary>What exactly does a Source badge mean, and why should I care?<svg class="chevron" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M9 6l6 6-6 6V6z"/></svg></summary>
+          <div class="faq-answer"><p>It means the claim was read from the repository but never executed. That is reliable for structure, such as what a file declares or how a tree is laid out, and weaker for behaviour, because a file can describe an intent the running system does not honour. Where a claim in the guide is about behaviour and carries only a Source badge, it is well-founded and unconfirmed, and you should check it before depending on it. Seventeen claims are in that category and they are individually marked.</p></div>
+        </details>
 
-  <p>
-    Two entries deserve attention beyond their star counts. <code>weijiafu14/pi2dsh</code> is an
-    <strong>ABI compatibility layer that runs another harness's plugins inside DSH</strong> — cross-harness
-    plugin portability already exists in the wild. And <code>lujianjun19/dsh-llm-github-copilot</code>
-    is a <strong>GitHub Copilot OAuth adapter for the LLM seam</strong>, which is a concrete demonstration
-    that the model layer really is replaceable by a third party.
-  </p>
+        <details class="faq-item">
+          <summary>Can I actually run the plugin example, or is it a listing?<svg class="chevron" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M9 6l6 6-6 6V6z"/></svg></summary>
+          <div class="faq-answer"><p>You can run it. It lives at <code>plugins/dsh-plugin-dev/</code> in this repository, ships two skills, and includes a <code>node verify.mjs</code> that checks it loads. The <a href="./guide.html#write">plugin section</a> walks the three files it is made of and the composition traps around them, the sharpest being that patching a row replaces the entire config rather than deep merging, so any field you want to keep has to be restated.</p></div>
+        </details>
 
-  <h3>Where the gaps are</h3>
-  <p>
-    If you are deciding what to build, the useful output of that audit is the distribution rather than the
-    total. Categorised across the sample:
-  </p>
+        <details class="faq-item">
+          <summary>What happens to this when the harness changes?<svg class="chevron" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M9 6l6 6-6 6V6z"/></svg></summary>
+          <div class="faq-answer"><p>It goes stale, and it says so. A guide pinned to a commit is a snapshot by construction, which is a weakness for currency and a strength for arguing: a claim tied to <code>b150a55</code> can be checked against <code>b150a55</code> forever, whereas a claim about what the project does "today" cannot be checked at all a month later. The drift section names the parts most likely to move first. If something here is now wrong, open an issue on the repository and it gets corrected in public, in the same way the original six were.</p></div>
+        </details>
 
-  <div class="cards">
-    <div class="card">
-      <h4>Saturated — pick a different problem</h4>
-      <p>Cost and token widgets (at least six independent implementations),
-      themes and UI beautification (at least six), plugin marketplaces
-      (three), <strong>memory layers</strong> (at least five). These are the obvious first ideas, which is
-      exactly why they are crowded.</p>
+        <details class="faq-item">
+          <summary>Why should I trust an independent guide over the people who built it?<svg class="chevron" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M9 6l6 6-6 6V6z"/></svg></summary>
+          <div class="faq-answer"><p>You should not, on authority. The maintainers know more about their own system than any outside reader ever will. What an outsider can offer is the record of what actually happened when someone with no prior knowledge installed the thing and tried to use it, which is information the maintainers structurally cannot produce about their own work. Trust the badges, not the author: every one of them names a command you can run or a file you can open.</p></div>
+        </details>
+
+      </div>
     </div>
-    <div class="card">
-      <h4>Contested but not closed</h4>
-      <p>Vision tooling (two strong entries), context and compaction
-      (one at 990 stars plus others), trajectory and run analysis (three). Room exists,
-      but you would be competing on quality against something that already works.</p>
-    </div>
-    <div class="card">
-      <h4>Genuinely thin</h4>
-      <p>Research workflows — the sample turned up one mathematical-research
-      adaptation and one academic-writing auditor. Note the caveat in <a href="#security">section 11</a>
-      before building anything that fetches from the open web.</p>
-    </div>
-    <div class="card">
-      <h4>Empty</h4>
-      <p><strong>Enterprise and line-of-business.</strong> No ERP, CRM, Dynamics 365, Power Platform, SAP
-      or Salesforce integration appeared anywhere in the sample. The nearest neighbours are a Chinese
-      e-invoicing toolkit and an interview trainer. This is the largest unoccupied category found.</p>
-    </div>
-  </div>
-
-  <div class="note">
-    <span class="k-label">Method, for anyone wanting to repeat it</span>
-    <p>
-      Stratum one was the top 100 by stars — what a browsing user actually sees. Stratum two took all ten
-      available pages of <code>sort=updated</code>, deduplicated to 947 candidates, and selected 100 by
-      sorting on a salted SHA-256 of the repository name, so the draw is reproducible rather than simply
-      "the most recent". Each repository was tested for <code>dsh.bundle</code> or
-      <code>dsh.profile</code> keys, a <code>@deepseek-ai/*</code> dependency, or a root Cordis manifest.
-    </p>
-    <p>
-      The two strata disagreed sharply: 12% native among the most-starred, 69% among the recently-updated. So <strong>no ecosystem-wide total is offered here</strong>. The 200-repository
-      result is solid; anything extrapolated from it would not be.
-    </p>
-  </div>
-</section>
-
-<section id="security">
-  <div class="sec-num">11 — Risk</div>
-  <h2>Security posture, honestly</h2>
-  <p>
-    The project documents its own limits unusually well, but does so scattered across a dozen package
-    READMEs. Consolidated, the picture is this, and it is the section to read before letting anything
-    autonomous loose inside a corporate network. <span class="badge b-src">Source</span>
-  </p>
-
-  <div class="warn">
-    <span class="k-label">The one-sentence summary</span>
-    <p>
-      The strongest boundary is <strong>OS-enforced file-write confinement for wrapped subprocesses</strong>.
-      It is not network isolation, not credential isolation, not host-read isolation, and not plugin
-      isolation.
-    </p>
-  </div>
-
-  <div class="t-wrap">
-  <table>
-    <thead><tr><th>Boundary</th><th>What it constrains</th><th>What it does not</th></tr></thead>
-    <tbody>
-      <tr>
-        <td><strong>Confined subprocesses</strong></td>
-        <td>Wraps exact subprocess arguments in an OS mechanism — bwrap then Landlock on Linux, Seatbelt on macOS, a restricted-token runner on Windows. On Linux, failure to obtain a usable mechanism fails closed.</td>
-        <td>Same-host-kernel confinement, not a container or VM. <code>danger-full-access</code> bypasses it entirely.</td>
-      </tr>
-      <tr>
-        <td><strong>Network</strong></td>
-        <td>Nothing. Network is <strong>not part of the policy vocabulary at all</strong>, and bwrap does not unshare the network.</td>
-        <td>Any confined process can still reach anything the host can reach.</td>
-      </tr>
-      <tr>
-        <td><strong>Reads</strong></td>
-        <td>Nothing. The policy vocabulary constrains <em>writes</em>.</td>
-        <td>Reads are unrestricted, including of credential files in your home directory.</td>
-      </tr>
-      <tr>
-        <td><strong>Credentials</strong></td>
-        <td>Child environments scrub <code>DSH_*</code> and variables whose names look like <code>KEY</code>, <code>PASSWORD</code>, <code>SECRET</code> or <code>TOKEN</code>. Code Mode gets an empty environment.</td>
-        <td><code>HOME</code>, proxy settings, normal CLI configuration, readable credential files and differently named secrets all survive. <strong>This is not a credential firewall.</strong></td>
-      </tr>
-      <tr>
-        <td><strong>macOS specifically</strong></td>
-        <td>An allow-by-default Seatbelt profile with <code>file-write*</code> denied, then workspace and temp roots allow-listed.</td>
-        <td>Depends on the <strong>deprecated <code>sandbox-exec</code></strong>, and relies on launch-time failure rather than probing availability first.</td>
-      </tr>
-      <tr>
-        <td><strong>Windows specifically</strong></td>
-        <td>A restricted token plus per-workspace and per-session temp ACL grants.</td>
-        <td>Reported by the project itself as <strong>partial</strong>: Everyone-granted objects and NTFS hard links weaken path-based write isolation.</td>
-      </tr>
-      <tr>
-        <td><strong>Code Mode worker</strong></td>
-        <td>Fresh worker per run, empty environment, heap/output/compute/wall limits, message validation, hard termination.</td>
-        <td>Described in its own README as <strong>"containment, not a security boundary."</strong> It is a worker thread in the host process, and any OS process it spawns can outlive it.</td>
-      </tr>
-      <tr>
-        <td><strong>Plugins</strong></td>
-        <td>Dynamically defined packages get a separate VM realm with withheld globals and a guarded context façade.</td>
-        <td>Ordinary plugins execute directly in the host process. The source states host-realm helpers permit escape and that this is <strong>not a malicious-code boundary — treat it as equivalent to shell access.</strong></td>
-      </tr>
-    </tbody>
-  </table>
-  </div>
-
-  <div class="warn">
-    <span class="k-label">If you enable web fetching, read this first</span>
-    <p>
-      The HTTP fetch provider's own README states that it is <strong>"an SSRF primitive"</strong> and
-      <strong>"must not be enabled in a deployment that can reach sensitive internal network
-      targets."</strong> Combined with network being absent from the sandbox policy, that is a specific and
-      serious constraint for anyone running this inside a corporate network. The web server package
-      separately ships with no TLS, authentication or origin policy.
-    </p>
-  </div>
-
-  <p>
-    Two further caveats worth carrying. Installing a plugin from a git source requires granting permission
-    to execute package code at install time, outside any sandbox. And the <code>minimal</code> preset wires
-    its editor to the unsandboxed filesystem service, so its edits are governed by tool logic and account
-    permissions rather than the session's workspace mode — which contradicts the blanket statement in the
-    CLI reference that filesystem mutations are restricted.
-  </p>
-  <p>
-    None of this is unusual for the category. Every honest harness documents where its boundary leaks. One competitor notes its sandbox "does not run the CLI itself in a sandbox", another that its
-    DNS-rebinding defence "does not eliminate" the risk. <strong>The failure mode to avoid is assuming
-    "sandboxed" means "safe."</strong> <span class="badge b-ext">External</span>
-  </p>
-</section>
-
-<section id="landscape">
-  <div class="sec-num">12 — Comparison</div>
-  <h2>How it compares</h2>
-  <p>
-    Positioning against the harnesses most readers already use. Licence and capability facts are from each
-    vendor's own documentation. <span class="badge b-ext">External</span>
-  </p>
-
-  <div class="t-wrap">
-  <table class="cmp">
-    <thead><tr><th></th><th>dsh</th><th>Claude Code</th><th>Codex CLI</th><th>Copilot CLI</th></tr></thead>
-    <tbody>
-      <tr><td>Source open</td><td class="yes">Full</td><td class="no">CLI closed</td><td class="yes">Full</td><td class="no">No source</td></tr>
-      <tr><td>Licence</td><td>MIT</td><td>Proprietary</td><td>Apache-2.0</td><td>Bespoke</td></tr>
-      <tr><td>Language</td><td>TypeScript</td><td>TS → binary</td><td>Rust</td><td>Node</td></tr>
-      <tr><td>Extensibility</td><td><strong>Plugins at every layer</strong></td><td>Hooks, skills, plugins, MCP</td><td>Hooks, skills, plugins</td><td>Hooks, plugins, skills</td></tr>
-      <tr><td>Config format</td><td>YAML patch layers</td><td>JSON</td><td>TOML</td><td>JSON</td></tr>
-      <tr><td>Sandbox</td><td>Landlock/bwrap, Seatbelt, Win ACL</td><td>Seatbelt, bwrap</td><td>Seatbelt, Landlock, native Win</td><td>OS + cloud</td></tr>
-      <tr><td>Sub-agents</td><td><strong>Including Codex and Claude Code as providers</strong></td><td>Yes, plus agent teams</td><td>Yes</td><td>Yes</td></tr>
-      <tr><td>Persistence</td><td>Append-only event log; fork/resume</td><td>JSONL; resume/fork</td><td>JSONL → SQLite</td><td>SQLite</td></tr>
-      <tr><td>Primary surface</td><td><strong>Web</strong>, plus CLI, headless, ACP, SDK</td><td>Terminal, IDE, desktop</td><td>Terminal, IDE</td><td>Terminal, ACP</td></tr>
-      <tr><td>Owns the model</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="no">Broker</td></tr>
-    </tbody>
-  </table>
-  </div>
-
-  <h3>Three things that table understates</h3>
-  <p>
-    <strong>It ships wrappers for two competitors, with pinned versions.</strong> The subagent provider
-    bundles depend on <code>@anthropic-ai/claude-agent-sdk</code> and <code>@openai/codex</code>, the
-    latter invoked as <code>app-server --stdio</code>. "Keep your existing tooling and point it here" is
-    not a metaphor; it is two npm dependencies. <span class="badge b-src">Source</span>
-  </p>
-  <p>
-    <strong>Harness lock-in is being competed away by the vendors themselves.</strong> Copilot CLI reads
-    <code>AGENTS.md</code>, <code>CLAUDE.md</code> and <code>GEMINI.md</code>; Codex sets a Claude plugin
-    root variable; <code>dsh</code> ships bridges that execute both Claude Code and Codex hook files. The
-    convergence on <code>AGENTS.md</code> is real and it flows through the closed players too.
-  </p>
-  <p>
-    <strong>"Public repo" is not "open source" is not "open governance."</strong> Claude Code's public
-    repository contains no CLI source. Copilot CLI's licence permits running and unmodified redistribution
-    but forbids derivative works. <code>dsh</code> is MIT-licensed and complete, and accepts no external pull requests, with issues disabled. Three different meanings of "open", and the distinction
-    is worth making explicitly whenever someone compares them.
-  </p>
-</section>
-
-<section id="misconceptions">
-  <div class="sec-num">13 — Corrections</div>
-  <h2>Commonly repeated errors</h2>
-  <p>
-    These circulate widely in secondary explanations of the project. Each correction below is cited to the
-    shipped artifact or the source. No individual is named: the point is the correction, not who made it,
-    and several of these are compressed summaries rather than mistakes.
-  </p>
-
-  <div class="mis">
-    <div class="mis-claim"><span class="x">✗</span><span>"The modes are standard, code, minimal and creator" — or "standard, creator and orchestrator"</span></div>
-    <div class="mis-body">
-      <p>
-        The preset IDs are <code>standard</code>, <code>code</code>, <code>minimal</code> and
-        <code>cordis</code>. There is no <code>orchestrator</code>. A recursive search of the shipped
-        preset tree returns nothing. "Creator" describes <code>cordis</code> but is not its ID, and the
-        display names are Chinese.
-      </p>
-      <p class="src-line">Verified against <code>config/agent-presets/</code> in the installed npm package. <span class="badge b-run">Run</span></p>
-    </div>
-  </div>
-
-  <div class="mis">
-    <div class="mis-claim"><span class="x">✗</span><span>"Code mode converts your interaction into a standalone TypeScript program"</span></div>
-    <div class="mis-body">
-      <p>
-        It changes tool <em>presentation</em>. The model writes a program against a generated SDK and
-        <code>run_code</code> executes it, collapsing what would be five round trips into one. The program
-        is ephemeral, runs in a fresh worker with no cross-run state, and is not saved as an artifact.
-      </p>
-      <p class="src-line">The shipped preset's own header comment states this. <span class="badge b-run">Run</span></p>
-    </div>
-  </div>
-
-  <div class="mis">
-    <div class="mis-claim"><span class="x">✗</span><span>"Everything is a plugin — there is no core"</span></div>
-    <div class="mis-body">
-      <p>
-        There is a kernel: Cordis's context and root fiber, plus built-in reflect, registry, events and
-        logger services and host bootstrap. The Loader is then mounted as a plugin. Some objects are
-        deliberately plain classes rather than services. The accurate claim is that nearly everything
-        <em>above a small kernel</em> is a plugin, and nothing above it is privileged.
-      </p>
-      <p class="src-line">The repository's own instructions call the phrase shorthand. <span class="badge b-src">Source</span></p>
-    </div>
-  </div>
-
-  <div class="mis">
-    <div class="mis-claim"><span class="x">✗</span><span>"The trajectory view maps every action back to the plugin that caused it"</span></div>
-    <div class="mis-body">
-      <p>
-        Trajectory is a turn-aware event ledger. It renders provenance for <em>sourced context</em>,
-        including a plugin kind, but assistant and tool records do not generally carry their owning plugin,
-        so it cannot attribute every loop action to an originating plugin.
-      </p>
-      <p class="src-line">Read from source, not executed — treat as well-founded but unconfirmed. <span class="badge b-src">Source</span></p>
-    </div>
-  </div>
-
-  <div class="mis">
-    <div class="mis-claim"><span class="x">✗</span><span>"Sandboxed, so it is safe to point at anything"</span></div>
-    <div class="mis-body">
-      <p>
-        Network is not in the sandbox policy vocabulary, reads are unrestricted, the environment scrub is
-        not a credential firewall, and both Code Mode and dynamically defined plugins are documented as
-        containment rather than security boundaries. See <a href="#security">section 11</a>.
-      </p>
-      <p class="src-line">Consolidated from package READMEs and sandbox sources. <span class="badge b-src">Source</span></p>
-    </div>
-  </div>
-
-  <div class="mis">
-    <div class="mis-claim"><span class="x">✗</span><span>"227 packages" as a measure of what runs</span></div>
-    <div class="mis-body">
-      <p>
-        227 is the repository's package count. A real web session composes 129 rows and boots
-        <strong>104 active plugins</strong>; headless boots 79. Ask the binary with
-        <code>--dump-config</code> rather than counting directories.
-      </p>
-      <p class="src-line">Measured from composed profile output. <span class="badge b-run">Run</span></p>
-    </div>
-  </div>
-</section>
-
-<section id="drift">
-  <div class="sec-num">14 — Errata</div>
-  <h2>Documentation drift at this commit</h2>
-  <p>
-    Four inconsistencies between the documentation and the tree, current as of <code>b150a55</code>. A
-    project shipping this much this fast having four stale references is unremarkable; they are listed
-    because each one will waste someone's afternoon, not as criticism. <span class="badge b-run">Run</span>
-  </p>
-
-  <div class="t-wrap">
-  <table>
-    <thead><tr><th>Where</th><th>What it says</th><th>What is true</th></tr></thead>
-    <tbody>
-      <tr>
-        <td><code>packages/README.md</code></td>
-        <td>Documents 48 package groups</td>
-        <td>Two groups exist but are undocumented: <code>mcp</code> and <code>runtime-diagnostics</code></td>
-      </tr>
-      <tr>
-        <td><code>AGENTS.md</code></td>
-        <td>Lists a <code>self-modification/</code> directory</td>
-        <td>No such directory. The code lives in <code>packages/extensions/</code></td>
-      </tr>
-      <tr>
-        <td>Plugin tutorial and CLI reference, both languages, plus the binary's own <code>--help</code></td>
-        <td>Cite <code>deepseek-harness/turtle-ui</code> as the working external plugin example</td>
-        <td>That repository does not exist. The organisation has zero public repositories. It is the only third-party example named anywhere</td>
-      </tr>
-      <tr>
-        <td><code>docs/cookbook/adding-a-package.md</code></td>
-        <td>Lists <code>private: true</code> as an enforced package.json invariant</td>
-        <td>The constraints gate raises <em>"release member must not set <code>private: true</code>"</em> for every <code>packages/&lt;group&gt;/&lt;pkg&gt;</code> outside <code>experimental/</code> — the advice holds only for experimental packages</td>
-      </tr>
-    </tbody>
-  </table>
-  </div>
-
-  <p>
-    Separately, and with more practical consequence: the <code>latest</code> npm dist-tag for
-    <code>@deepseek-ai/dsh-tools</code> points at the first release ever published, while current versions
-    ship under <code>next</code>. Anyone following the plugin tutorial's install instruction gets a stale
-    package. <span class="badge b-ext">External</span>
-  </p>
-  <p>
-    Because the project accepts no external pull requests and has issues disabled, the only route for any
-    of this is GitHub Discussions.
-  </p>
-</section>
-
-<section id="verified">
-  <div class="sec-num">15 — Provenance</div>
-  <h2>How this was verified</h2>
-  <p>
-    The part of this document that should determine how much you trust the rest.
-  </p>
-
-  <h3>What was executed <span class="badge b-run">Run</span></h3>
-  <ul>
-    <li>Installed the published <code>@deepseek-ai/dsh</code> CLI from npm into an isolated prefix with a private <code>DSH_HOME</code>, and confirmed <code>dsh --version</code>.</li>
-    <li>Dumped the composed configuration for the <code>web</code> and <code>headless</code> profiles, and counted rows, disabled rows and distinct packages.</li>
-    <li>Read the shipped agent-preset directory from the installed package, including every <code>preset.yml</code> and the <code>code</code> preset's composition file.</li>
-    <li>Searched the shipped preset tree for <code>orchestrator</code>, finding nothing.</li>
-    <li>Wrote a three-file external plugin, installed it with <code>dsh plugin add</code>, confirmed it was appended to the profile's bundle list and appeared in the composed tree, and booted the profile.</li>
-    <li>Confirmed the repository HEAD, the absence of <code>packages/self-modification/</code>, the length of <code>BENCHMARK.md</code>, and the 18 numbered entries in the vendoring log.</li>
-    <li>Queried public registry metadata for the dist-tag discrepancy, cross-checked against two independent sources.</li>
-    <li>Called <code>getBuiltinProviders()</code> against <code>@earendil-works/pi-ai@0.82.1</code>, the version the repository pins, and counted the 37 provider IDs listed in <a href="#byom">section 08</a>.</li>
-  </ul>
-
-  <h3>What was read but not executed <span class="badge b-src">Source</span></h3>
-  <ul>
-    <li>The entire security posture in <a href="#security">section 11</a>. Every statement there is sourced from package documentation and sandbox source, and none was tested by attempting to escape a sandbox.</li>
-    <li>The trajectory-provenance correction in <a href="#misconceptions">section 13</a>.</li>
-    <li>Composition layer order and the no-deep-merge behaviour of patches.</li>
-    <li>The extension-seam inventory in <a href="#write">section 09</a>.</li>
-    <li>The LLM adapter contract, the dormant multi-provider mount in the base composition, and the three-protocol limit on hand-declared routes in <a href="#byom">section 08</a>. No model was invoked through any route.</li>
-  </ul>
-
-  <h3>Known limitations</h3>
-  <div class="warn">
-    <p>
-      <strong>The binary exercised was <code>0.1.0-rc.7</code>, not the checkout's <code>0.1.1-rc.2</code>.</strong>
-      A registry mirror on the machine used for this work served a stale view and the current release could
-      not be installed from it. Row counts in particular may differ on the newer version. The structural findings (the preset inventory, the composition mechanism, the plugin install path) are unlikely
-      to have moved, but they have not been re-confirmed on the current release.
-    </p>
-  </div>
-  <p>
-    No model was invoked at any point. Everything here is keyless, which means nothing in this guide
-    describes how the agent behaves in a real task, only how the system is assembled. Tool-calling
-    behaviour, loop dynamics, compaction quality and output quality are all outside what was tested.
-  </p>
-  <div class="note">
-    <span class="k-label">A note on method</span>
-    <p>
-      During this work a corporate npm mirror silently served a two-week-old view of the registry, which
-      produced three confident and wrong conclusions about release timing before being caught by
-      cross-checking against independent sources. Those claims were retracted rather than quietly
-      adjusted. If you are verifying anything about what is <em>published</em>, do not trust a single
-      mirror.
-    </p>
-  </div>
-</section>
+  </section>
 
 </main>
 
-<footer>
-  <div class="wrap">
-    <p>
-      <strong>DSH Field Guide</strong> — an independent reference compiled 2026-08-24, describing
-      DeepSeek Harness at commit <code>b150a55</code> (2026-08-21, version <code>0.1.1-rc.2</code>).
-    </p>
-    <p>
-      <strong>These are point-in-time field notes.</strong> They are dated deliberately and are not
-      maintained against future releases. DeepSeek Harness is pre-release software under rapid development. Eight release candidates shipped in the week before this was written, so verify
-      anything load-bearing against the current version before depending on it.
-    </p>
-    <p>
-      Independent and unofficial. <strong>Not affiliated with, endorsed by, or sponsored by DeepSeek.</strong>
-      "DeepSeek Harness" is used descriptively to identify the software this document describes. Quoted
-      documentation and source excerpts remain the property of their respective authors and are reproduced
-      under the terms of the project's MIT licence for the purpose of commentary and instruction.
-    </p>
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-links">
+      <a href="https://github.com/RagnarPitla/dsh-field-guide">GitHub</a>
+      <a href="./guide.html">Read the field guide</a>
+    </div>
+    <p class="footer-credits">This page and the guide are single hand-written HTML files with no dependencies, no build step and no third-party JavaScript. The subject, DeepSeek Harness, is MIT licensed, and it is built on Cordis, also MIT. Thanks to the maintainers of both, who ship more documentation than most projects of that size, and without which none of this would have been checkable.</p>
+    <p class="footer-note">Guide compiled 2026-08-24 against commit <code>b150a55</code>. If a claim here has gone stale, that commit is still the right place to argue with it.</p>
+
+    <div class="footer-author">
+      <p class="footer-bio">Ragnar Pitla builds agent systems and writes about what they do when you actually run them.</p>
+      <div class="connect-links">
+        <a class="connect-link" href="https://www.linkedin.com/in/ragnarpitla" target="_blank" rel="noopener noreferrer">
+          <svg class="connect-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
+            <path fill="currentColor" d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.225 0z"/>
+          </svg>
+          Connect on LinkedIn
+        </a>
+        <a class="connect-link" href="https://rbuild.ai" target="_blank" rel="noopener noreferrer">
+          <svg class="connect-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
+            <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <circle cx="12" cy="12" r="9"/>
+              <path d="M3 12h18"/>
+              <path d="M12 3c2.5 2.6 3.8 5.7 3.8 9S14.5 18.4 12 21c-2.5-2.6-3.8-5.7-3.8-9S9.5 5.6 12 3z"/>
+            </g>
+          </svg>
+          rbuild.ai
+        </a>
+      </div>
+    </div>
   </div>
 </footer>
+
+<script>
+// Copy buttons for terminal blocks. Injected rather than authored into the
+// markup, so a page with JS disabled shows no button it cannot honour.
+// Only prompt lines are copied; command output is never put on the clipboard.
+(function () {
+  if (!navigator.clipboard) return;
+
+  var ICON = '<svg class="copy-icon" viewBox="0 0 24 24" width="13" height="13" aria-hidden="true" focusable="false">'
+    + '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">'
+    + '<rect x="9" y="9" width="11" height="11" rx="2"/>'
+    + '<path d="M5 15V5a2 2 0 0 1 2-2h10"/></g></svg>';
+
+  Array.prototype.forEach.call(document.querySelectorAll('.terminal'), function (term) {
+    var pre = term.querySelector('pre');
+    if (!pre) return;
+
+    var commands = pre.textContent.split('\n')
+      .filter(function (line) { return line.slice(0, 2) === '$ '; })
+      .map(function (line) { return line.slice(2); })
+      .join('\n');
+    if (!commands) return;
+
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'copy-button';
+    button.setAttribute('aria-label', 'Copy commands to clipboard');
+    button.innerHTML = ICON + '<span class="copy-text">Copy</span>';
+
+    var label = button.querySelector('.copy-text');
+    var timer;
+
+    button.addEventListener('click', function () {
+      navigator.clipboard.writeText(commands).then(function () {
+        window.clearTimeout(timer);
+        label.textContent = 'Copied';
+        button.setAttribute('data-copied', 'true');
+        button.setAttribute('aria-label', 'Commands copied to clipboard');
+        timer = window.setTimeout(function () {
+          label.textContent = 'Copy';
+          button.removeAttribute('data-copied');
+          button.setAttribute('aria-label', 'Copy commands to clipboard');
+        }, 2000);
+      }).catch(function () {
+        label.textContent = 'Press Ctrl C';
+      });
+    });
+
+    term.appendChild(button);
+  });
+})();
+</script>
 
 </body>
 </html>
