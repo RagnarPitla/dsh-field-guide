@@ -75,9 +75,11 @@ dsh --profile web --dump-config | grep -c '^- id:'       # composed rows
 dsh --profile web --dump-config | grep -c 'disabled: true'
 ```
 
-For reference, `web` composes far more than `headless`, and a freshly created
-profile composes `dsh-base` only — which boots cleanly and then idles, because
-no app bundle means no interface.
+For reference, on `dsh` 0.1.0-rc.7: `web` composes 129 rows of which 25 are
+disabled (104 active), `headless` composes 81 rows with 2 disabled (79 active),
+and `dsh-base` alone composes 78 rows with 1 disabled (77 active). A profile
+holding base alone boots cleanly and then idles, because no app bundle means no
+interface.
 
 ## When the composition is right but nothing happens
 
@@ -96,8 +98,9 @@ preset loader rejects that at mount.
 
 ## Useful invariants
 
-- Profiles auto-initialise on first use; dumping a config is enough to create
-  the directory.
+- The shipped `web` and `headless` profiles are created on first use; dumping a
+  config is enough. An arbitrary profile name is **not** auto-created and
+  composes zero rows until `dsh plugin add` seeds it with `dsh-base`.
 - `dsh plugin add` appends the package to `dsh.profile.bundles` for you, after
   `dsh-base`, so it patches base rather than being patched by it.
 - Misconfiguration is designed to fail loudly at load when it is

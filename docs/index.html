@@ -306,7 +306,7 @@
     <tbody>
       <tr><td><code>web</code></td><td>129</td><td>25</td><td><strong>104</strong></td></tr>
       <tr><td><code>headless</code></td><td>81</td><td>2</td><td><strong>79</strong></td></tr>
-      <tr><td>a new empty profile</td><td>79</td><td>2</td><td>77 (base only)</td></tr>
+      <tr><td><code>dsh-base</code> alone</td><td>78</td><td>1</td><td>77</td></tr>
     </tbody>
   </table>
   </div>
@@ -489,8 +489,10 @@
   }
 }</code></pre>
   <p>
-    Profiles auto-initialise on first use. Merely asking <code>dsh</code> to dump its configuration created
-    both the <code>web</code> and <code>headless</code> profile directories on disk.
+    Profiles are directories, and the shipped ones are created for you: asking <code>dsh</code> to dump
+    its configuration was enough to bring both <code>web</code> and <code>headless</code> into existence on
+    disk. An arbitrary new name is not auto-created, though — until you run <code>dsh plugin add</code>
+    against it, it resolves to nothing and composes zero rows.
   </p>
 </section>
 
@@ -723,8 +725,7 @@ Done in 223ms</code></pre>
       <h4>A bundle alone gives you no UI</h4>
       <p>A newly created profile composes base only. It boots cleanly and then sits there with no
       interface, because an app bundle — <code>dsh-web-app</code> or <code>dsh-headless</code> — is what
-      provides a surface. Add one, or install into an existing profile.</p>
-    </div>
+      provides a surface. Add one, or install into an existing profile.</p>    </div>
   </div>
 
   <div class="warn">
