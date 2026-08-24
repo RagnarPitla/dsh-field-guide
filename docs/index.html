@@ -165,7 +165,7 @@
     <div class="eyebrow">Independent field guide &middot; Evidence-marked</div>
     <h1 class="title">DSH Field Guide</h1>
     <p class="standfirst">
-      A working reference for <strong>DeepSeek Harness</strong> — what it actually is, how its composition
+      A working reference for DeepSeek Harness: what it is, how its composition
       model fits together, how to write a plugin for it, and what its sandbox does and does not protect.
       Every claim here is marked with how it was checked: <strong>run against the shipped binary</strong>,
       <strong>read from source</strong>, or <strong>taken from an external source</strong>. Where a widely
@@ -188,8 +188,7 @@
   <div class="sec-num">00 — Method</div>
   <h2>How to read this guide</h2>
   <p>
-    DeepSeek Harness is a pre-release project — version <code>0.1.1-rc.2</code>, with breaking changes
-    expected — that moves fast enough for eight release candidates to ship in a week. Two of them landed
+    DeepSeek Harness is a pre-release project (version <code>0.1.1-rc.2</code>, breaking changes expected) that moves fast enough for eight release candidates to ship in a week. Two of them landed
     on the same day. Any document about it is a photograph, not a map, so this one states its shutter
     speed: it describes commit <code>b150a55</code> of 2026-08-21, and every factual claim carries a badge
     saying how it was established.
@@ -218,8 +217,7 @@
     <p>
       Source-reading is weakest precisely where behaviour is concerned. A file can describe an intent
       that the running system does not honour. Where a claim in this guide is behavioural and carries
-      only a <span class="badge b-src">Source</span> badge, treat it as well-founded but unconfirmed —
-      and check it before depending on it.
+      only a <span class="badge b-src">Source</span> badge, treat it as well-founded but unconfirmed, and check it before depending on it.
     </p>
   </div>
 
@@ -246,9 +244,9 @@
   <div class="sec-num">01 — Context</div>
   <h2>What a harness is, briefly</h2>
   <p>
-    A model produces tokens. Everything else that makes an agent useful — the tools it may call, the loop
+    A model produces tokens. Everything else that makes an agent useful is the harness: the tools it may call, the loop
     that decides when to stop, what goes into the context window and what gets evicted, which actions need
-    approval, where the conversation is persisted, and what the process may touch on disk — is the harness.
+    approval, where the conversation is persisted, and what the process may touch on disk.
     The model is the engine; the harness is the rest of the car.
   </p>
   <p>
@@ -258,7 +256,7 @@
     <li>
       <strong>A better harness does not always beat a better model.</strong> In one controlled comparison
       by Databricks, swapping harnesses changed cost by roughly 2x with quality essentially unchanged. The
-      harness thesis is strongest for long-horizon, interactive work — not universally.
+      harness thesis is strongest for long-horizon, interactive work, not universally.
     </li>
     <li>
       <strong>Harnesses are decreasingly model-agnostic.</strong> Harnesses and models are increasingly
@@ -281,13 +279,13 @@
   <div class="sec-num">02 — Orientation</div>
   <h2>What DeepSeek Harness is</h2>
   <p>
-    DeepSeek Harness — <code>dsh</code> on the command line — is an MIT-licensed, TypeScript agent harness
+    DeepSeek Harness (<code>dsh</code> on the command line) is an MIT-licensed, TypeScript agent harness
     published by DeepSeek. It is built on a vendored fork of <strong>Cordis</strong>, a dependency-injection
     and plugin framework, and its organising idea is that the harness should be assembled from plugin layers
     rather than configured within a fixed application. <span class="badge b-src">Source</span>
   </p>
   <p>
-    You launch it as a <em>profile</em> — an ordered stack of plugin bundles under your own overrides. The
+    You launch it as a <em>profile</em>: an ordered stack of plugin bundles under your own overrides. The
     documented entry point is <code>npx @deepseek-ai/dsh web</code>, which serves a local web UI on port
     3080. There is also a headless profile for one-shot tasks, an ACP server for automation, and a JSON-RPC
     SDK. It is web-first in a field that is mostly terminal-first. <span class="badge b-run">Run</span>
@@ -328,8 +326,7 @@
     </p>
     <p>
       A harness marketed on the strength of its architecture has, as of this commit, published no evidence
-      that the architecture improves task outcomes. That does not make the architecture bad — much of it is
-      genuinely well built — but it should temper any claim that it is <em>better</em> rather than
+      that the architecture improves task outcomes. That does not make the architecture bad. Much of it is well built. But it should temper any claim that it is <em>better</em> rather than
       <em>different</em>.
     </p>
   </div>
@@ -364,7 +361,7 @@
   <p>
     There is a kernel. It consists of Cordis's <code>Context</code>, the root <code>Fiber</code>, and the
     built-in Reflect, Registry, Events and Logger services, plus host bootstrap. Bootstrap then mounts the
-    Loader <em>as a plugin</em>, and from that point the generalisation holds remarkably well — the model
+    Loader <em>as a plugin</em>, and from that point the generalisation holds — the model
     adapter, the tool registry, the session log and the agent loop are all plugins. But some things are
     deliberately not: <code>Session</code>, for instance, is a plain class rather than a service.
   </p>
@@ -386,17 +383,14 @@
     pattern" — the authors' own word. <span class="badge b-ext">External</span>
   </p>
   <p>
-    What is claimed as novel is narrower and more defensible: <strong>composition of inverses</strong> — you
-    write an inverse only for each atomic effect, and the inverse of any composite is derived — and
-    <strong>asynchronous</strong> teardown, which OSGi's synchronous deactivation callback cannot express.
+    What is claimed as novel is narrower and more defensible. The first is composition of inverses, where you write an inverse only for each atomic effect and the inverse of any composite is derived. The second is asynchronous teardown, which OSGi's synchronous deactivation callback cannot express.
     The contested question is whether that justifies calling it a programming paradigm.
   </p>
   <p>
     The sharpest public critique comes from a direct peer, the author of a competing harness, who granted
     that per-registration cleanup handlers are nice but doubted the rest: the cross-plugin dependency
     injection "comes with a lot of footguns... most plugins do not have dependencies on each other, so this
-    more complex system doesn't win you much." A substantive Chinese-language review reached a similar
-    verdict — the architecture has novelty, the orchestration paradigm has no breakthrough — and observed
+    more complex system doesn't win you much." A substantive Chinese-language review reached a similar verdict: the architecture has novelty, the orchestration paradigm has no breakthrough. It also observed
     that "everything is swappable" does not automatically yield better task success rates.
     <span class="badge b-ext">External</span>
   </p>
@@ -491,7 +485,7 @@
   <p>
     Profiles are directories, and the shipped ones are created for you: asking <code>dsh</code> to dump
     its configuration was enough to bring both <code>web</code> and <code>headless</code> into existence on
-    disk. An arbitrary new name is not auto-created, though — until you run <code>dsh plugin add</code>
+    disk. An arbitrary new name is not auto-created. Until you run <code>dsh plugin add</code>
     against it, it resolves to nothing and composes zero rows.
   </p>
 </section>
@@ -556,8 +550,7 @@
   <h2>The four presets that ship</h2>
   <p>
     Exactly four agent presets ship, discovered from directory names rather than declared in an
-    enumeration. The table below was read from the installed npm package — the artifact users actually
-    run. A recursive search of that tree for <code>orchestrator</code> returns nothing.
+    enumeration. The table below was read from the installed npm package — the artifact users run. A recursive search of that tree for <code>orchestrator</code> returns nothing.
     <span class="badge b-run">Run</span>
   </p>
 
@@ -603,7 +596,7 @@
   </div>
   <p>
     Code Mode is a <strong>tool-presentation change that collapses round trips</strong>. The program is an
-    ephemeral call executed in a fresh worker with no cross-run state — not a durable artifact, and not a
+    ephemeral call executed in a fresh worker with no cross-run state. It is not a durable artifact, and not a
     conversion of your session into a standalone program.
   </p>
 </section>
@@ -625,7 +618,7 @@
   <div class="warn">
     <span class="k-label">The behaviour that will surprise you</span>
     <p>
-      Later layers win per row — and <strong>a patch replaces a row's entire <code>config</code>. There is
+      Later layers win per row, and <strong>a patch replaces a row's entire <code>config</code>. There is
       no deep merge.</strong> If you patch a row to change one field, you must restate every other field
       you want to keep. This is the composition footgun most likely to cost you an afternoon.
     </p>
@@ -650,7 +643,7 @@
     <span class="y">root</span>: [<span class="g">.</span>]
   <span class="y">disabled</span>: <span class="p">true</span></code></pre>
   <p>
-    It is completely keyless — no API key, no model call — so it is the cheapest possible way to answer
+    It needs no API key and makes no model call, so it is the cheapest way to answer
     "what is actually loaded?" and the first thing to reach for when a plugin appears to do nothing.
   </p>
 </section>
@@ -665,7 +658,7 @@
     <span class="badge b-run">Run</span>
   </p>
 
-  <h4>1. <code>package.json</code> — the <code>dsh.bundle</code> key is what makes it installable</h4>
+  <h4>1. <code>package.json</code>: the <code>dsh.bundle</code> key is what makes it installable</h4>
 <pre><code>{
   <span class="y">"name"</span>: <span class="g">"dsh-hello-probe"</span>,
   <span class="y">"version"</span>: <span class="g">"0.1.0"</span>,
@@ -675,14 +668,14 @@
   <span class="y">"dsh"</span>: { <span class="y">"bundle"</span>: { <span class="y">"patch"</span>: <span class="g">"./cordis.patch.yml"</span> } }
 }</code></pre>
 
-  <h4>2. <code>index.js</code> — named exports only</h4>
+  <h4>2. <code>index.js</code>: named exports only</h4>
 <pre><code><span class="p">export const</span> name = <span class="g">'hello-probe'</span>
 
 <span class="p">export function</span> <span class="y">apply</span>(ctx) {
   ctx.<span class="y">logger</span>(<span class="g">'hello-probe'</span>).<span class="y">info</span>(<span class="g">'external plugin loaded'</span>)
 }</code></pre>
 
-  <h4>3. <code>cordis.patch.yml</code> — <code>name</code> must match the package name exactly</h4>
+  <h4>3. <code>cordis.patch.yml</code>: <code>name</code> must match the package name exactly</h4>
 <pre><code>- <span class="y">insert</span>:
     - <span class="y">id</span>: hello-probe
       <span class="y">name</span>: dsh-hello-probe</code></pre>
@@ -698,7 +691,7 @@ Done in 223ms</code></pre>
     <p>
       <code>dsh plugin ... add</code> does more than install a dependency: it
       <strong>automatically appends the package to <code>dsh.profile.bundles</code></strong>. You do not
-      hand-edit the manifest. Note the resulting order — the new bundle lands <em>after</em>
+      hand-edit the manifest. Note the resulting order: the new bundle lands <em>after</em>
       <code>dsh-base</code>, so it patches base rather than being patched by it. Install order decides
       layer order.
     </p>
@@ -717,23 +710,21 @@ Done in 223ms</code></pre>
     <div class="card">
       <h4>Provider availability is not model access</h4>
       <p>Registering a web, skill, subagent or workflow provider does <em>not</em> give the agent a tool.
-      The matching consumer must also be in that agent's composition — a web provider needs
+      The matching consumer must also be in that agent's composition. A web provider needs
       <code>dsh-tool-web</code>, a skill provider needs <code>dsh-tool-skill</code>, and so on. This is the
       most likely reason a correctly written plugin appears to do nothing.</p>
     </div>
     <div class="card">
       <h4>A bundle alone gives you no UI</h4>
       <p>A newly created profile composes base only. It boots cleanly and then sits there with no
-      interface, because an app bundle — <code>dsh-web-app</code> or <code>dsh-headless</code> — is what
-      provides a surface. Add one, or install into an existing profile.</p>    </div>
+      interface, because an app bundle (<code>dsh-web-app</code> or <code>dsh-headless</code>) is what provides a surface. Add one, or install into an existing profile.</p>    </div>
   </div>
 
   <div class="warn">
     <span class="k-label">Check your dependency pin</span>
     <p>
       At the time of writing, the <code>latest</code> npm dist-tag for
-      <code>@deepseek-ai/dsh-tools</code> points at <code>0.0.1-rc.1</code> — the first release ever
-      published — while the current line ships under the <code>next</code> tag. A plain
+      <code>@deepseek-ai/dsh-tools</code> points at <code>0.0.1-rc.1</code>, the first release ever published, while the current line ships under the <code>next</code> tag. A plain
       <code>npm install @deepseek-ai/dsh-tools</code> therefore resolves to a stale package whose own peer
       dependencies are an entire generation behind. Pin explicitly, or install <code>@next</code>.
       <span class="badge b-ext">External</span>
@@ -746,20 +737,20 @@ Done in 223ms</code></pre>
     registration method that returns a disposer: <span class="badge b-src">Source</span>
   </p>
   <ul>
-    <li><strong>Tools</strong> — <code>ctx.tools.register(defineTool({...}))</code></li>
-    <li><strong>Tool policy</strong> — the <code>tools/pre-execute</code>, <code>tools/execute</code>, <code>tools/post-execute</code> and <code>tools/result</code> waterfalls</li>
-    <li><strong>Web</strong> — search and fetch providers</li>
-    <li><strong>Skills</strong> — a discovery provider, or one runtime skill</li>
-    <li><strong>Subagents</strong> — implement a provider, expose it with a configured delegation tool</li>
-    <li><strong>Workflows</strong> — an engine, plus observation events</li>
-    <li><strong>Session events</strong> — declaration-merge your own durable payloads</li>
-    <li><strong>Compaction</strong> — provide or consume the engine</li>
-    <li><strong>Context</strong> — dynamic request context, turn-specific injection, and system-prompt sections</li>
-    <li><strong>LLM adapters</strong> — <code>ctx.llm.registerAdapter(...)</code></li>
+    <li><strong>Tools</strong>: <code>ctx.tools.register(defineTool({...}))</code></li>
+    <li><strong>Tool policy</strong>: the <code>tools/pre-execute</code>, <code>tools/execute</code>, <code>tools/post-execute</code> and <code>tools/result</code> waterfalls</li>
+    <li><strong>Web</strong>: search and fetch providers</li>
+    <li><strong>Skills</strong>: a discovery provider, or one runtime skill</li>
+    <li><strong>Subagents</strong>: implement a provider, expose it with a configured delegation tool</li>
+    <li><strong>Workflows</strong>: an engine, plus observation events</li>
+    <li><strong>Session events</strong>: declaration-merge your own durable payloads</li>
+    <li><strong>Compaction</strong>: provide or consume the engine</li>
+    <li><strong>Context</strong>: dynamic request context, turn-specific injection, and system-prompt sections</li>
+    <li><strong>LLM adapters</strong>: <code>ctx.llm.registerAdapter(...)</code></li>
   </ul>
   <p>
     Two rules govern all of them. <strong>Every registration is an effect</strong> — it returns a disposer,
-    and disposal must actually remove the contribution. <strong>Waterfall listeners must call
+    and disposal must remove the contribution. <strong>Waterfall listeners must call
     <code>next()</code></strong> to delegate; returning without it short-circuits the chain.
   </p>
 </section>
@@ -768,8 +759,7 @@ Done in 223ms</code></pre>
   <div class="sec-num">09 — Ecosystem</div>
   <h2>What has already been built</h2>
   <p>
-    The most striking thing about this project is not its architecture — it is how fast people built on
-    it. As of 2026-08-24, <strong>11,258 GitHub repositories carry the <code>dsh-plugin</code> topic</strong>,
+    The most striking thing about this project is not its architecture. It is how fast people built on it. As of 2026-08-24, <strong>11,258 GitHub repositories carry the <code>dsh-plugin</code> topic</strong>,
     on a harness still at <code>0.1.1-rc.2</code>. That is a remarkable community response, and it is also
     a number that needs careful handling. <span class="badge b-ext">External</span>
   </p>
@@ -777,8 +767,7 @@ Done in 223ms</code></pre>
   <div class="warn">
     <span class="k-label">The topic is a discovery signal, not a verified index</span>
     <p>
-      A two-stratum audit of 200 of those repositories — 100 by stars, 100 drawn deterministically from
-      the recently-updated window — found <strong>81 native plugins and 22 verified multi-tool
+      A two-stratum audit of 200 of those repositories (100 by stars, 100 drawn deterministically from the recently-updated window) found <strong>81 native plugins and 22 verified multi-tool
       integrations</strong>. The rest either showed no plugin signal or could not be determined from a
       root manifest.
     </p>
@@ -830,20 +819,20 @@ Done in 223ms</code></pre>
   <div class="cards">
     <div class="card">
       <h4>Saturated — pick a different problem</h4>
-      <p><strong>Cost and token widgets</strong> (at least six independent implementations),
-      <strong>themes and UI beautification</strong> (at least six), <strong>plugin marketplaces</strong>
+      <p>Cost and token widgets (at least six independent implementations),
+      themes and UI beautification (at least six), plugin marketplaces
       (three), <strong>memory layers</strong> (at least five). These are the obvious first ideas, which is
       exactly why they are crowded.</p>
     </div>
     <div class="card">
       <h4>Contested but not closed</h4>
-      <p><strong>Vision tooling</strong> (two strong entries), <strong>context and compaction</strong>
-      (one at 990 stars plus others), <strong>trajectory and run analysis</strong> (three). Room exists,
+      <p>Vision tooling (two strong entries), context and compaction
+      (one at 990 stars plus others), trajectory and run analysis (three). Room exists,
       but you would be competing on quality against something that already works.</p>
     </div>
     <div class="card">
       <h4>Genuinely thin</h4>
-      <p><strong>Research workflows</strong> — the sample turned up essentially one mathematical-research
+      <p>Research workflows — the sample turned up one mathematical-research
       adaptation and one academic-writing auditor. Note the caveat in <a href="#security">section 10</a>
       before building anything that fetches from the open web.</p>
     </div>
@@ -865,8 +854,7 @@ Done in 223ms</code></pre>
       <code>dsh.profile</code> keys, a <code>@deepseek-ai/*</code> dependency, or a root Cordis manifest.
     </p>
     <p>
-      The two strata disagreed sharply — 12% native among the most-starred versus 69% among the
-      recently-updated — so <strong>no ecosystem-wide total is offered here</strong>. The 200-repository
+      The two strata disagreed sharply: 12% native among the most-starred, 69% among the recently-updated. So <strong>no ecosystem-wide total is offered here</strong>. The 200-repository
       result is solid; anything extrapolated from it would not be.
     </p>
   </div>
@@ -877,7 +865,7 @@ Done in 223ms</code></pre>
   <h2>Security posture, honestly</h2>
   <p>
     The project documents its own limits unusually well, but does so scattered across a dozen package
-    READMEs. Consolidated, the picture is this — and it is the section to read before letting anything
+    READMEs. Consolidated, the picture is this, and it is the section to read before letting anything
     autonomous loose inside a corporate network. <span class="badge b-src">Source</span>
   </p>
 
@@ -957,8 +945,7 @@ Done in 223ms</code></pre>
     CLI reference that filesystem mutations are restricted.
   </p>
   <p>
-    None of this is unusual for the category. Every honest harness documents where its boundary leaks —
-    one competitor notes its sandbox "does not run the CLI itself in a sandbox", another that its
+    None of this is unusual for the category. Every honest harness documents where its boundary leaks. One competitor notes its sandbox "does not run the CLI itself in a sandbox", another that its
     DNS-rebinding defence "does not eliminate" the risk. <strong>The failure mode to avoid is assuming
     "sandboxed" means "safe."</strong> <span class="badge b-ext">External</span>
   </p>
@@ -1006,8 +993,7 @@ Done in 223ms</code></pre>
   <p>
     <strong>"Public repo" is not "open source" is not "open governance."</strong> Claude Code's public
     repository contains no CLI source. Copilot CLI's licence permits running and unmodified redistribution
-    but forbids derivative works. <code>dsh</code> is genuinely MIT and genuinely complete — and accepts no
-    external pull requests, with issues disabled. Three different meanings of "open", and the distinction
+    but forbids derivative works. <code>dsh</code> is MIT-licensed and complete, and accepts no external pull requests, with issues disabled. Three different meanings of "open", and the distinction
     is worth making explicitly whenever someone compares them.
   </p>
 </section>
@@ -1026,7 +1012,7 @@ Done in 223ms</code></pre>
     <div class="mis-body">
       <p>
         The preset IDs are <code>standard</code>, <code>code</code>, <code>minimal</code> and
-        <code>cordis</code>. There is no <code>orchestrator</code> — a recursive search of the shipped
+        <code>cordis</code>. There is no <code>orchestrator</code>. A recursive search of the shipped
         preset tree returns nothing. "Creator" describes <code>cordis</code> but is not its ID, and the
         display names are Chinese.
       </p>
@@ -1122,7 +1108,7 @@ Done in 223ms</code></pre>
       <tr>
         <td>Plugin tutorial and CLI reference, both languages, plus the binary's own <code>--help</code></td>
         <td>Cite <code>deepseek-harness/turtle-ui</code> as the working external plugin example</td>
-        <td>That repository does not exist — the organisation has zero public repositories. It is the only third-party example named anywhere</td>
+        <td>That repository does not exist. The organisation has zero public repositories. It is the only third-party example named anywhere</td>
       </tr>
       <tr>
         <td><code>docs/cookbook/adding-a-package.md</code></td>
@@ -1176,14 +1162,13 @@ Done in 223ms</code></pre>
     <p>
       <strong>The binary exercised was <code>0.1.0-rc.7</code>, not the checkout's <code>0.1.1-rc.2</code>.</strong>
       A registry mirror on the machine used for this work served a stale view and the current release could
-      not be installed from it. Row counts in particular may differ on the newer version. The structural
-      findings — the preset inventory, the composition mechanism, the plugin install path — are unlikely
+      not be installed from it. Row counts in particular may differ on the newer version. The structural findings (the preset inventory, the composition mechanism, the plugin install path) are unlikely
       to have moved, but they have not been re-confirmed on the current release.
     </p>
   </div>
   <p>
     No model was invoked at any point. Everything here is keyless, which means nothing in this guide
-    describes how the agent behaves in a real task — only how the system is assembled. Tool-calling
+    describes how the agent behaves in a real task, only how the system is assembled. Tool-calling
     behaviour, loop dynamics, compaction quality and output quality are all outside what was tested.
   </p>
   <div class="note">
@@ -1208,8 +1193,7 @@ Done in 223ms</code></pre>
     </p>
     <p>
       <strong>These are point-in-time field notes.</strong> They are dated deliberately and are not
-      maintained against future releases. DeepSeek Harness is pre-release software under rapid
-      development — eight release candidates shipped in the week before this was written — so verify
+      maintained against future releases. DeepSeek Harness is pre-release software under rapid development. Eight release candidates shipped in the week before this was written, so verify
       anything load-bearing against the current version before depending on it.
     </p>
     <p>
