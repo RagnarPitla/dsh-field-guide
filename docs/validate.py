@@ -411,8 +411,7 @@ def main() -> int:
         check_banned_phrases(html, rel, r)
         check_local_refs(html, path, r)
         check_anchors(html, rel, r)
-        if path.name == "index.html":
-            check_meta(html, rel, r)
+        check_meta(html, rel, r)
 
     for css_path in sorted(site.rglob("*.css")):
         css = css_path.read_text(encoding="utf-8")
