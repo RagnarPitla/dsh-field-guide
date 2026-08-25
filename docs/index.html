@@ -4,14 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>DSH Field Guide - what DeepSeek Harness actually does</title>
-<meta name="description" content="An independent field guide to DeepSeek Harness, pinned to commit b150a55. Forty-five claims, each badged with how it was checked, and six widely repeated claims corrected.">
+<meta name="description" content="An independent field guide to DeepSeek Harness, pinned to commit b150a55. Forty-eight claims, each badged with how it was checked, and six widely repeated claims corrected.">
 <meta name="color-scheme" content="light">
 <meta name="theme-color" content="#ffffff">
 
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="DSH Field Guide">
 <meta property="og:title" content="DSH Field Guide - what DeepSeek Harness actually does">
-<meta property="og:description" content="An independent field guide to DeepSeek Harness, pinned to commit b150a55. Forty-five claims, each badged with how it was checked, and six widely repeated claims corrected.">
+<meta property="og:description" content="An independent field guide to DeepSeek Harness, pinned to commit b150a55. Forty-eight claims, each badged with how it was checked, and six widely repeated claims corrected.">
 <meta property="og:url" content="https://ragnarpitla.github.io/dsh-field-guide/">
 <meta property="og:image" content="https://ragnarpitla.github.io/dsh-field-guide/assets/og-card.png">
 <meta property="og:image:width" content="1200">
@@ -20,7 +20,7 @@
 
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="DSH Field Guide - what DeepSeek Harness actually does">
-<meta name="twitter:description" content="An independent field guide to DeepSeek Harness, pinned to commit b150a55. Forty-five claims, each badged with how it was checked, and six widely repeated claims corrected.">
+<meta name="twitter:description" content="An independent field guide to DeepSeek Harness, pinned to commit b150a55. Forty-eight claims, each badged with how it was checked, and six widely repeated claims corrected.">
 <meta name="twitter:image" content="https://ragnarpitla.github.io/dsh-field-guide/assets/og-card.png">
 <meta name="twitter:image:alt" content="DSH Field Guide: what DeepSeek Harness actually does">
 
@@ -57,7 +57,7 @@
       <div class="hero-copy">
         <p class="hero-kicker badge"><img src="./assets/favicon.svg" alt="" width="12" height="12">DSH Field Guide</p>
         <h1 id="hero-heading">What DeepSeek Harness actually does, claim by claim</h1>
-        <p class="sub-line">An independent guide to <code>dsh</code>, pinned to commit <code>b150a55</code>, where <strong>every one of its 45 factual claims carries a badge saying how it was established</strong>: run against the shipped binary, read from source, or taken from outside the project. Six claims that circulate widely did not survive the check, and each correction names what replaced it.</p>
+        <p class="sub-line">An independent guide to <code>dsh</code>, pinned to commit <code>b150a55</code>, where <strong>every one of its 48 factual claims carries a badge saying how it was established</strong>: run against the shipped binary, read from source, or taken from outside the project. Six claims that circulate widely did not survive the check, and each correction names what replaced it.</p>
         <div class="cta-row">
           <a class="btn primary" href="./guide.html">Read the field guide</a>
           <a class="btn ghost" href="https://github.com/RagnarPitla/dsh-field-guide">View the code on GitHub</a>
@@ -147,7 +147,7 @@
         </li>
         <li>
           <h3>Badge every claim with the evidence behind it</h3>
-          <p>Run means it was executed. Source means the file was read but the behaviour was never run. External means it came from outside the project. The split is 17, 17 and 11, and the two weaker classes are labelled as weaker instead of being blended into the strong one.</p>
+          <p>Run means it was executed. Source means the file was read but the behaviour was never run. External means it came from outside the project. The split is 18, 19 and 11, and the two weaker classes are labelled as weaker instead of being blended into the strong one.</p>
         </li>
         <li>
           <h3>Print the gaps at the top</h3>
@@ -227,8 +227,8 @@
         <div class="proof-copy">
           <p>The last row is the one worth dwelling on. 227 is a real number, it is just a count of directories in a monorepo rather than a measure of anything that runs. Compose a real web profile and 129 rows resolve to 104 active plugins; the headless profile boots 79. Three numbers, three different questions, and the one in general circulation answers none of them.</p>
           <div class="stat-row">
-            <div class="stat"><b>45</b><span>claims badged with how they were checked</span></div>
-            <div class="stat"><b>17</b><span>executed against the shipped binary</span></div>
+            <div class="stat"><b>48</b><span>claims badged with how they were checked</span></div>
+            <div class="stat"><b>18</b><span>executed against the shipped binary</span></div>
             <div class="stat"><b>6</b><span>widely repeated claims corrected</span></div>
           </div>
           <p>The diagnostic that settles most of these ships with the product. It prints the fully composed tree without booting it, annotated with which bundle contributed each row and which bundle patched it:</p>
@@ -245,7 +245,7 @@
     root: [.]
   disabled: true</pre>
           </div>
-          <p>Every correction above is written out in full in <a href="./guide.html#misconceptions">section 15</a>, with the command or the file it came from.</p>
+          <p>Every correction above is written out in full in <a href="./guide.html#misconceptions">section 13</a>, with the command or the file it came from.</p>
         </div>
       </div>
     </div>
